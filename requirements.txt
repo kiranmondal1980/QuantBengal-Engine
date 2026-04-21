@@ -7,3 +7,4 @@ pytz
 yfinance
 smartapi-python
 pyotp
+logzero
