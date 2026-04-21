@@ -1,31 +1,53 @@
 import os
 import logging
+import yfinance as yf
 
 class IndianBrokerAPI:
     def __init__(self):
-        # These are securely pulled from GitHub Secrets
+        # Keys for future real-money integration
         self.api_key = os.environ.get("BROKER_API_KEY")
-        self.api_secret = os.environ.get("BROKER_API_SECRET")
-        self.access_token = os.environ.get("BROKER_ACCESS_TOKEN")
-        
         if not self.api_key:
-            logging.warning("API Keys not found. Running in PAPER TRADING mode.")
+            logging.warning("API Keys not found. Running in REAL-MARKET PAPER TRADING mode.")
 
-    def get_historical_data(self, symbol, timeframe="15minute"):
+    def get_historical_data(self, symbol="^NSEBANK", timeframe="15m"):
         """
-        MOCK FUNCTION: Fetches the last 20 candles for Bank Nifty
-        In production, this calls the broker's historical API.
+        Fetches LIVE market data using Yahoo Finance.
+        ^NSEBANK is the ticker for Nifty Bank.
         """
-        logging.info(f"Fetching {timeframe} data for {symbol}...")
-        # Returns a dummy dictionary. You will replace this with real broker data.
-        return {
-            "close": [44000, 44100, 44250, 44300, 44450],
-            "high": [44050, 44150, 44300, 44350, 44500]
-        }
+        logging.info(f"Fetching LIVE {timeframe} market data for {symbol}...")
+        
+        try:
+            # Download the last 5 days of 15-minute candles
+            data = yf.download(symbol, period="5d", interval=timeframe, progress=False)
+            
+            if data.empty:
+                logging.error("Market data empty. Is the market closed or symbol wrong?")
+                return None
+            
+            # Convert Pandas columns to Python lists
+            closes = data['Close'].tolist()
+            highs = data['High'].tolist()
+            
+            logging.info(f"Successfully fetched {len(closes)} live market candles.")
+            logging.info(f"Latest Market Close Price: {round(closes[-1], 2)}")
+            
+            return {
+                "close": closes,
+                "high": highs,
+                "latest_price": round(closes[-1], 2)
+            }
+        except Exception as e:
+            logging.error(f"Failed to fetch real market data: {e}")
+            return None
 
-    def place_order(self, symbol, qty, transaction_type, order_type="MARKET"):
+    def place_order(self, symbol, qty, transaction_type, current_price, order_type="MARKET"):
         """
-        MOCK FUNCTION: Places F&O Order
+        PAPER TRADING EXECUTION
         """
-        logging.info(f"EXECUTING {transaction_type} ORDER: {qty} qty of {symbol} at {order_type}")
-        return {"status": "success", "order_id": "123456789"}
+        logging.info("==================================================")
+        logging.info(f"🚨 PAPER TRADE EXECUTED: {transaction_type} 🚨")
+        logging.info(f"Instrument: {symbol}")
+        logging.info(f"Quantity: {qty}")
+        logging.info(f"Market Spot Price at Execution: {current_price}")
+        logging.info("==================================================")
+        return {"status": "paper_success", "price": current_price}
