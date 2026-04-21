@@ -1,6 +1,8 @@
+import os
 import logging
 from SmartApi import SmartConnect
 import pyotp
+import logzero # Add this import too!
 
 class IndianBrokerAPI:
     def __init__(self):
