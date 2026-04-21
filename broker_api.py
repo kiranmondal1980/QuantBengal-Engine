@@ -22,13 +22,20 @@ class IndianBrokerAPI:
             logging.error(f"Login failed: {e}")
 
     def get_data(self):
-        logging.info("Fetching Real Market Data (Bypassing the 2026 clock error)...")
+        logging.info("Fetching LIVE Market Data...")
         
-        # We must use real 2024 dates because Angel One does not have 2026 data
-        from_date_str = "2024-05-14 09:15"
-        to_date_str = "2024-05-20 15:30" 
+        # 1. Get exact current date/time in India
+        ist = pytz.timezone('Asia/Kolkata')
+        end_time = datetime.now(ist)
+        # 2. Subtract 5 days to get enough candles for RSI
+        start_time = end_time - timedelta(days=5)
         
-        # Using State Bank of India (Token 3045) as it is 100% supported on all Angel One tiers
+        from_date_str = start_time.strftime("%Y-%m-%d 09:15")
+        to_date_str = end_time.strftime("%Y-%m-%d %H:%M") # Up to the current minute
+        
+        logging.info(f"Querying Angel One from {from_date_str} to {to_date_str}")
+        
+        # 3. Use SBIN (3045) to bypass Angel One's Index data blocks
         params = {
             "exchange": "NSE",
             "symboltoken": "3045", 
@@ -43,16 +50,16 @@ class IndianBrokerAPI:
             if response and response.get('status') == True:
                 candles = response.get('data', [])
                 if candles:
-                    logging.info(f"SUCCESS: Received {len(candles)} real market candles.")
+                    logging.info(f"SUCCESS: Received {len(candles)} live market candles.")
                     return candles
                 else:
-                    logging.error("API returned empty list. Dates may be a holiday/weekend.")
+                    logging.error("API returned empty list for this token.")
                     return []
             else:
                 logging.error(f"API rejected request: {response}")
                 return []
         except Exception as e:
-            logging.error(f"Failed to fetch data: {e}")
+            logging.error(f"Failed to fetch live data: {e}")
             return []
     def place_order(self, signal):
         logging.info(f"🚨 EXECUTING TRADE: {signal} 🚨")
