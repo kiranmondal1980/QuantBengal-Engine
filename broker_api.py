@@ -9,26 +9,27 @@ class IndianBrokerAPI:
             logging.warning("API Keys not found. Running in REAL-MARKET PAPER TRADING mode.")
 
     def get_historical_data(self, symbol="BANKNIFTY.NS", timeframe="15m"):
-        logging.info(f"Fetching LIVE {timeframe} market data for {symbol}...")
+        logging.info(f"Fetching market data for {symbol}...")
         try:
             data = yf.download(symbol, period="5d", interval=timeframe, progress=False)
+            
+            # IF DATA IS EMPTY (Market Closed), return Mock Data so the Dashboard works
             if data.empty:
-                logging.error("Market data empty. Is the market closed or symbol wrong?")
-                return None
+                logging.warning("Market closed. Returning MOCK data for UI testing.")
+                return {
+                    "close": [44000, 44100, 44200, 44300, 44400],
+                    "high": [44050, 44150, 44250, 44350, 44450],
+                    "latest_price": 44400
+                }
             
-            closes = data['Close'].tolist()
-            highs = data['High'].tolist()
-            
-            logging.info(f"Successfully fetched {len(closes)} live market candles.")
-            logging.info(f"Latest Market Close Price: {round(float(closes[-1]), 2)}")
-            
+            # Otherwise return Real Data
             return {
-                "close": closes,
-                "high": highs,
-                "latest_price": round(float(closes[-1]), 2)
+                "close": data['Close'].tolist(),
+                "high": data['High'].tolist(),
+                "latest_price": round(float(data['Close'].iloc[-1]), 2)
             }
         except Exception as e:
-            logging.error(f"Failed to fetch real market data: {e}")
+            logging.error(f"Error: {e}")
             return None
 
     def place_order(self, symbol, qty, transaction_type, current_price, order_type="MARKET"):
