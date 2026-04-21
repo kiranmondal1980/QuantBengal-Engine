@@ -3,9 +3,13 @@ on:
   schedule:
     - cron: '*/15 3-10 * * 1-5'
   workflow_dispatch: 
+
 jobs:
   run-algo:
     runs-on: ubuntu-latest
+    env: # GLOBAL ENVIRONMENT SETTINGS
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
