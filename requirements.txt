@@ -5,3 +5,5 @@ ta
 requests
 pytz
 yfinance
+smartapi-python
+pyotp
