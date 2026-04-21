@@ -1,10 +1,11 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
+import yfinance as yf
 from broker_api import IndianBrokerAPI
 from ta.trend import EMAIndicator
 from ta.momentum import RSIIndicator
 from ta.volatility import BollingerBands
-import yfinance as yf
 
 # --- 1. CONFIGURATION ---
 st.set_page_config(page_title="QuantBengal Pro | Institutional Terminal", layout="wide", page_icon="📈")
@@ -13,14 +14,11 @@ st.set_page_config(page_title="QuantBengal Pro | Institutional Terminal", layout
 st.markdown("""
     <style>
     .stApp { background-color: #f8fafc; color: #1e293b; font-family: 'Segoe UI', sans-serif; }
-    .header-bar {
-        background-color: #ffffff; padding: 1.5rem 3rem; border-bottom: 4px solid #1e3a8a;
-        display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    }
+    .header-bar { background-color: #ffffff; padding: 1.5rem 3rem; border-bottom: 4px solid #1e3a8a; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
     .main-title { color: #1e3a8a; font-size: 28px; font-weight: 800; margin: 0; }
     .pro-tag { color: #dc2626; }
     
-    /* Tutorial Styling */
+    /* Tutorial / Guide Styling */
     .tutorial-container { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 30px; margin-bottom: 20px; }
     .tut-step { border-left: 4px solid #1e3a8a; padding-left: 20px; margin-bottom: 30px; }
     .tut-header { color: #1e3a8a; font-size: 20px; font-weight: 700; margin-bottom: 10px; }
@@ -44,8 +42,11 @@ st.markdown("""
 st.markdown('<div class="header-bar"><h1 class="main-title">QUANTBENGAL <span class="pro-tag">PRO</span></h1><div style="color:#10b981; font-weight:700;">● PRODUCTION ENGINE LIVE</div></div>', unsafe_allow_html=True)
 
 # --- 4. NAVIGATION TABS ---
-tab1, tab2, tab3, tab4 = st.tabs(["📈 LIVE TRADING VIEW", "🔬 STRATEGY EXPLAINED", "🎓 MASTER TUTORIAL", "📊 PERFORMANCE AUDIT"])
+tab1, tab2, tab3, tab4 = st.tabs(["📈 LIVE TERMINAL", "🔬 STRATEGY SUITE", "📊 PERFORMANCE AUDIT", "🎓 MASTER TUTORIAL"])
 
+# ==========================================
+# TAB 1: LIVE TERMINAL
+# ==========================================
 with tab1:
     col_ctrl, col_main = st.columns([1, 3])
     with col_ctrl:
@@ -65,7 +66,7 @@ with tab1:
                 df = pd.DataFrame(candles, columns=['ts', 'open', 'high', 'low', 'close', 'vol'])
                 df['ts'] = pd.to_datetime(df['ts']).dt.strftime('%H:%M')
                 
-                # Indicators Calculated for all modes to ensure table updates correctly
+                # Indicators Calculated for all modes
                 df['ema_9'] = EMAIndicator(close=df['close'], window=9).ema_indicator()
                 df['ema_21'] = EMAIndicator(close=df['close'], window=21).ema_indicator()
                 df['rsi'] = RSIIndicator(close=df['close'], window=14).rsi()
@@ -75,7 +76,6 @@ with tab1:
                 
                 latest, prev = df.iloc[-1], df.iloc[-2]
                 
-                # Metrics Row
                 m1, m2, m3, m4 = st.columns(4)
                 m1.metric("LIVE PRICE", f"₹{latest['close']:,.2f}")
                 
@@ -103,8 +103,6 @@ with tab1:
                     elif latest['close'] >= latest['upper_band']: sig, style = "🚨 OVERBOUGHT: BUY PUT", "banner-sell"
 
                 st.markdown(f'<div class="banner {style}">{sig}</div>', unsafe_allow_html=True)
-
-                # Data Table
                 st.markdown(f"**DATA TERMINAL: {algo_mode.upper()}**")
                 display_df = df[table_cols].tail(6).round(2)
                 table_html = f"""<table class="styled-table"><thead><tr>{' '.join([f'<th>{c.upper()}</th>' for c in table_cols])}</tr></thead><tbody>"""
@@ -114,120 +112,107 @@ with tab1:
             else: st.info("Initializing Secure Connection...")
         except Exception as e: st.error(f"Hardware Error: {e}")
 
+# ==========================================
+# TAB 2: STRATEGY SUITE
+# ==========================================
 with tab2:
     st.markdown("### 🔬 Strategy Definitions")
     c1, c2, c3 = st.columns(3)
-    with c1: st.info("**Trend Rider:** Uses Moving Average crossovers to identify if a new trend has started.")
-    with c2: st.info("**Morning Breakout:** Exploits the high volatility of the first 15 minutes of trading.")
-    with c3: st.info("**Safety Zone:** Identifies price extremes. Perfect for non-trending, sideways markets.")
+    with c1: st.info("**The Trend Rider:** Uses 9 & 21 Moving Average crossovers to identify if a new trend has started. Best for directional markets.")
+    with c2: st.info("**The Morning Breakout:** Exploits the high volatility of the first 15 minutes of trading. Wait for the 9:15 range to break.")
+    with c3: st.info("**The Safety Zone:** Identifies extreme price levels using Bollinger Bands. Perfect for non-trending, sideways markets.")
 
+# ==========================================
+# TAB 3: PERFORMANCE AUDIT (BACKTESTING)
+# ==========================================
 with tab3:
-    st.markdown('<div class="tutorial-container">', unsafe_allow_html=True)
-    st.markdown("<h1 style='color:#1e3a8a; margin-top:0;'>🎓 QuantBengal Master Tutorial</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='color:#64748b;'>Welcome to the future of automated trading. Follow this guide to master the platform.</p><hr>", unsafe_allow_html=True)
-
-with tab4:
-    # Notice the 4 spaces before st.markdown
     st.markdown("### 📊 30-Day Historical Performance Audit")
-    st.write("This module runs the 'Trend Rider' logic through real market data from the last 30 days.")
+    st.write("Analysis of 'The Trend Rider' (9/21 EMA) logic on real Nifty 50 data from the past month.")
     
-    if st.button("🚀 RUN BACKTEST"):
-        with st.spinner("Analyzing 30 days of market candles..."):
-            # All following lines must be indented further...
-            hist_data = yf.download("^NSEI", period="1mo", interval="15m")
+    if st.button("🚀 RUN 30-DAY BACKTEST"):
+        with st.spinner("Analyzing historical candles..."):
+            hist_data = yf.download("^NSEI", period="1mo", interval="15m", progress=False)
             
             if not hist_data.empty:
-                # FIX: Ensure data is 1-dimensional by using .squeeze()
-                # and selecting only the 'Close' column clearly.
-                close_prices = hist_data['Close'].squeeze()
+                # FIX: Force data into 1D array of pure float numbers to prevent Pandas crash
+                close_prices = hist_data['Close'].squeeze().astype(float)
                 
                 df_hist = hist_data.copy()
-                
-                # 2. Apply Indicators using the flattened close_prices
                 df_hist['ema_9'] = EMAIndicator(close=close_prices, window=9).ema_indicator()
                 df_hist['ema_21'] = EMAIndicator(close=close_prices, window=21).ema_indicator()
                 df_hist['rsi'] = RSIIndicator(close=close_prices, window=14).rsi()
                 
-                # 3. Simulation Logic
                 trades = []
                 in_pos = False
-                entry_price = 0
+                entry_price = 0.0
                 
                 for i in range(1, len(df_hist)):
-                    # Check for BUY_CALL Crossover
                     if not in_pos:
-                        if df_hist['ema_9'].iloc[i-1] <= df_hist['ema_21'].iloc[i-1] and \
-                           df_hist['ema_9'].iloc[i] > df_hist['ema_21'].iloc[i] and \
-                           df_hist['rsi'].iloc[i] > 55:
-                            
-                            entry_price = df_hist['Close'].iloc[i]
-                            trades.append({'Date': df_hist.index[i], 'Signal': 'BUY_CALL', 'Entry': entry_price})
+                        if df_hist['ema_9'].iloc[i-1] <= df_hist['ema_21'].iloc[i-1] and df_hist['ema_9'].iloc[i] > df_hist['ema_21'].iloc[i] and df_hist['rsi'].iloc[i] > 55:
+                            entry_price = float(close_prices.iloc[i])
+                            trades.append({'Date': df_hist.index[i], 'Signal': 'BUY CALL', 'Entry': entry_price})
                             in_pos = True
-                            
-                    # Exit logic (Exit when EMA crosses back)
                     elif in_pos:
                         if df_hist['ema_9'].iloc[i] < df_hist['ema_21'].iloc[i]:
-                            exit_p = df_hist['Close'].iloc[i]
+                            exit_p = float(close_prices.iloc[i])
                             trades[-1]['Exit'] = exit_p
                             trades[-1]['Points'] = exit_p - entry_price
                             in_pos = False
-
-                # 4. Show Results
-                res = pd.DataFrame(trades)
-                if not res.empty:
+                
+                # Clean up any open trades at the end of the month
+                trades = [t for t in trades if 'Points' in t]
+                
+                res_df = pd.DataFrame(trades)
+                if not res_df.empty:
+                    # Double ensure Points is float for math
+                    res_df['Points'] = res_df['Points'].astype(float)
+                    
                     m1, m2, m3 = st.columns(3)
-                    win_rate = (res['Points'] > 0).mean() * 100
-                    total_pnl = res['Points'].sum()
+                    win_rate = (res_df['Points'] > 0).mean() * 100
+                    total_pts = res_df['Points'].sum()
                     
                     with m1: st.metric("WIN RATE", f"{win_rate:.1f}%")
-                    with m2: st.metric("TOTAL POINTS Gained", f"+{total_pnl:.1f}")
-                    with m3: st.metric("TOTAL SIGNALS", len(res))
+                    with m2: st.metric("TOTAL INDEX POINTS", f"+{total_pts:.1f}")
+                    with m3: st.metric("TOTAL TRADES", len(res_df))
                     
-                    # Charting the performance
-                    st.markdown("#### Cumulative Profit Curve")
-                    res['Cumulative'] = res['Points'].cumsum()
-                    st.line_chart(res.set_index('Date')['Cumulative'])
+                    st.markdown("#### Cumulative Profit Curve (Index Points)")
+                    res_df['Cumulative'] = res_df['Points'].cumsum()
+                    st.line_chart(res_df.set_index('Date')['Cumulative'])
                     
-                    st.markdown("#### Detailed Backtest Trade Log")
-                    st.dataframe(res.style.format(precision=2), use_container_width=True)
+                    st.markdown("#### Detailed Historical Trade Log")
+                    st.dataframe(res_df.round(2), use_container_width=True)
                 else:
-                    st.warning("No signals were found in this 30-day period.")
+                    st.warning("No complete trades found in the last 30 days.")
             else:
-                st.error("Failed to fetch historical data from Yahoo Finance.")
+                st.error("Failed to fetch historical data.")
+
+# ==========================================
+# TAB 4: MASTER TUTORIAL
+# ==========================================
+with tab4:
+    st.markdown('<div class="tutorial-container">', unsafe_allow_html=True)
+    st.markdown("<h1 style='color:#1e3a8a; margin-top:0;'>🎓 QuantBengal Master Tutorial</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#64748b;'>Follow this guide to master the platform.</p><hr>", unsafe_allow_html=True)
     
-    # STEP 1
     st.markdown("""<div class="tut-step">
-        <span class="blue-badge">Step 1</span>
-        <div class="tut-header">The Engine Setup (SmartAPI)</div>
-        <div class="tut-text">Your first task is to link your Demat account. Log into the <b>Angel One SmartAPI</b> portal and create an app. Copy your <b>API Key</b> and your <b>TOTP Secret</b>. These are the "keys" that allow our math engine to speak to the market.</div>
+        <span class="blue-badge">Step 1</span><div class="tut-header">The Engine Setup</div>
+        <div class="tut-text">Link your Demat account. Log into the <b>Angel One SmartAPI</b> portal and copy your <b>API Key</b> and <b>TOTP Secret</b> into the Settings.</div>
     </div>""", unsafe_allow_html=True)
     
-    # STEP 2
     st.markdown("""<div class="tut-step">
-        <span class="blue-badge">Step 2</span>
-        <div class="tut-header">Choosing Your Strategy</div>
-        <div class="tut-text">Every market condition requires a different tool:
-            <ul>
-                <li><b>The Trend Rider:</b> Use this when the market is moving fast up or down.</li>
-                <li><b>The Morning Breakout:</b> Check this only between 9:45 AM and 10:30 AM.</li>
-                <li><b>The Safety Zone:</b> Use this when the market is boring and moving sideways.</li>
-            </ul>
-        </div>
+        <span class="blue-badge">Step 2</span><div class="tut-header">Choosing Your Strategy</div>
+        <div class="tut-text">Every market condition requires a different tool. Use the <b>Live Terminal</b> sidebar to switch between Trend, Morning Breakout, and Safety Zone.</div>
     </div>""", unsafe_allow_html=True)
     
-    # STEP 3
     st.markdown("""<div class="tut-step">
-        <span class="blue-badge">Step 3</span>
-        <div class="tut-header">Executing Trades</div>
-        <div class="tut-text">Watch the <b>Execution Banner</b>. It will turn <b style='color:#1e40af;'>BLUE</b> for a Bullish trade and <b style='color:#dc2626;'>RED</b> for a Bearish trade. The bot on GitHub Actions is programmed to execute these trades every 15 minutes automatically.</div>
+        <span class="blue-badge">Step 3</span><div class="tut-header">Executing Trades</div>
+        <div class="tut-text">Watch the <b>Execution Banner</b>. It turns <b style='color:#1e40af;'>BLUE</b> for Buy Call and <b style='color:#dc2626;'>RED</b> for Buy Put. If it's gray, the system is protecting your capital by holding.</div>
     </div>""", unsafe_allow_html=True)
     
-    # STEP 4
     st.markdown("""<div class="tut-step">
-        <span class="blue-badge">Step 4</span>
-        <div class="tut-header">Risk Management</div>
-        <div class="tut-text">Never risk more than 2% of your capital on a single trade. The "RSI" indicator on your dashboard helps you see if a move is exhausted before you entry. If RSI is above 70, think twice before buying more!</div>
+        <span class="blue-badge">Step 4</span><div class="tut-header">Risk Management</div>
+        <div class="tut-text">Never risk more than 2% of your capital. Run the <b>Performance Audit</b> tab to see the mathematical history of the strategy before you commit money.</div>
     </div>""", unsafe_allow_html=True)
     
-    st.success("🏁 **Ready to Start?** Switch back to the 'Live Trading View' to begin monitoring the engine.")
+    st.success("🏁 **Ready to Start?** Switch back to the 'Live Terminal' to begin monitoring the engine.")
     st.markdown('</div>', unsafe_allow_html=True)
