@@ -39,7 +39,7 @@ class IndianBrokerAPI:
         params = {
             "exchange": "NSE",
             "symboltoken": "99926009", 
-            "interval": "FIFTEEN_MINUTE", 
+            "interval": "FIVE_MINUTE", 
             "fromdate": from_date_str, 
             "todate": to_date_str
         }
