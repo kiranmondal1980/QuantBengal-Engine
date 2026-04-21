@@ -137,12 +137,16 @@ with tab4:
             hist_data = yf.download("^NSEI", period="1mo", interval="15m")
             
             if not hist_data.empty:
+                # FIX: Ensure data is 1-dimensional by using .squeeze()
+                # and selecting only the 'Close' column clearly.
+                close_prices = hist_data['Close'].squeeze()
+                
                 df_hist = hist_data.copy()
                 
-                # 2. Apply Indicators
-                df_hist['ema_9'] = EMAIndicator(close=df_hist['Close'], window=9).ema_indicator()
-                df_hist['ema_21'] = EMAIndicator(close=df_hist['Close'], window=21).ema_indicator()
-                df_hist['rsi'] = RSIIndicator(close=df_hist['Close'], window=14).rsi()
+                # 2. Apply Indicators using the flattened close_prices
+                df_hist['ema_9'] = EMAIndicator(close=close_prices, window=9).ema_indicator()
+                df_hist['ema_21'] = EMAIndicator(close=close_prices, window=21).ema_indicator()
+                df_hist['rsi'] = RSIIndicator(close=close_prices, window=14).rsi()
                 
                 # 3. Simulation Logic
                 trades = []
