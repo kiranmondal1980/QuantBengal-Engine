@@ -131,7 +131,7 @@ with tab3:
     
     if st.button("🚀 RUN 30-DAY BACKTEST"):
         with st.spinner("Analyzing historical candles..."):
-            hist_data = yf.download("^NSEI", period="1mo", interval="15m", progress=False)
+            hist_data = yf.download("^NSEI", period="1mo", interval="5m", progress=False)
             
             if not hist_data.empty:
                 # FIX: Force data into 1D array of pure float numbers to prevent Pandas crash
