@@ -22,31 +22,26 @@ class IndianBrokerAPI:
             logging.error(f"Login failed: {e}")
 
     def get_data(self):
-        ist = pytz.timezone('Asia/Kolkata')
-        end_time = datetime.now(ist)
-        start_time = end_time - timedelta(days=5)
+        logging.info("Running PROOF OF LIFE test with SBIN...")
         
-        from_date_str = start_time.strftime("%Y-%m-%d 09:15")
-        to_date_str = end_time.strftime("%Y-%m-%d 15:30")
-        
-        logging.info(f"Fetching data from {from_date_str} to {to_date_str}")
-        
-        # 26009 is the official Angel One token for Nifty Bank Index
+        # 3045 is the token for State Bank of India (SBIN)
+        # We use a hardcoded date from early May to guarantee market was open
         params = {
             "exchange": "NSE",
-            "symboltoken": "26009", 
+            "symboltoken": "3045", 
             "interval": "FIFTEEN_MINUTE", 
-            "fromdate": from_date_str, 
-            "todate": to_date_str
+            "fromdate": "2024-05-02 09:15", 
+            "todate": "2024-05-10 15:30"
         }
         
         try:
             response = self.obj.getCandleData(params)
-            # CRITICAL DEBUG LINE: This tells us exactly what Angel One thinks
             logging.info(f"Raw API Response: {response}") 
             
             if response and response.get('status') == True:
-                return response.get('data', [])
+                candles = response.get('data', [])
+                logging.info(f"SUCCESS: Received {len(candles)} candles.")
+                return candles
             else:
                 logging.error(f"API rejected the request. Reason: {response}")
                 return []
