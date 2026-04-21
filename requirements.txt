@@ -1,6 +1,6 @@
-pandas==2.1.0
-numpy==1.25.2
-ta==0.10.2
-requests==2.31.0
-pytz==2023.3
-yfinance==0.2.28
+pandas>=2.2.0
+numpy>=1.26.0
+ta
+requests
+pytz
+yfinance
