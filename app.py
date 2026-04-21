@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 from broker_api import IndianBrokerAPI
-from strategy import MomentumStrategy
+from datetime import datetime
+import pytz
 
 st.set_page_config(page_title="QuantBengal Pro", layout="wide")
 
@@ -10,30 +11,40 @@ st.markdown("---")
 
 # Initialize Engine
 broker = IndianBrokerAPI()
-strategy = MomentumStrategy(broker)
 
 # Dashboard Layout
 col1, col2 = st.columns([1, 2])
 
 with col1:
-    st.metric(label="System Status", value="ACTIVE", delta="Paper Trading")
+    st.metric(label="System Status", value="ACTIVE")
     if st.button('🔄 Refresh Market Data'):
         st.rerun()
 
 with col2:
     st.subheader("Live Market Analysis")
+    
+    # Attempt to fetch data
     data = broker.get_historical_data()
-    if data:
-        st.write(f"**Latest Bank Nifty Spot Price:** ₹{data['latest_price']}")
-        # Display the last 5 candles in a clean table
+    
+    # Check if data was returned
+    if data and 'latest_price' in data:
+        st.success(f"**Connected to Live Market**")
+        st.metric(label="Bank Nifty Spot Price", value=f"₹{data['latest_price']}")
+        
+        # Create a clean table for the last 5 candles
         df = pd.DataFrame({'Close': data['close'][-5:], 'High': data['high'][-5:]})
         st.table(df)
     else:
-        st.error("Market data currently unavailable.")
+        # Check if it's market hours
+        ist = pytz.timezone('Asia/Kolkata')
+        now = datetime.now(ist)
+        
+        if now.weekday() < 5 and 9 <= now.hour < 16:
+            st.error("Market is open, but API is not returning data. Check your API Keys/TOTP.")
+        else:
+            st.info("Market is closed. Waiting for next session.")
 
 st.markdown("### 📜 Automated Trade History")
-# This simulates what your bot would show. 
-# In Phase 2, we will make this pull from your actual Trade Log CSV.
 history = pd.DataFrame({
     'Time': ['09:15', '10:30', '12:45'],
     'Signal': ['BUY_CALL', 'BUY_PUT', 'HOLD'],
