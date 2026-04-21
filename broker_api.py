@@ -1,6 +1,6 @@
 import os
 import logging
-from SmartApi import SmartConnect
+from SmartApi.smartConnect import SmartConnect
 import pyotp
 import logzero # Add this import too!
 
