@@ -38,7 +38,7 @@ class IndianBrokerAPI:
         # 3. Use SBIN (3045) to bypass Angel One's Index data blocks
         params = {
             "exchange": "NSE",
-            "symboltoken": "99926000", 
+            "symboltoken": "99926009", 
             "interval": "FIFTEEN_MINUTE", 
             "fromdate": from_date_str, 
             "todate": to_date_str
