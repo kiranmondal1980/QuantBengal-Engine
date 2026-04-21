@@ -1,11 +1,9 @@
 streamlit
-pandas>=2.2.0
-numpy>=1.26.0
+pandas
+numpy
 ta
 requests
 pytz
 yfinance
-smartapi-python
-pyotp
-logzero
-websocket-client
+flask
+pydantic
