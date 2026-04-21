@@ -1,43 +1,47 @@
-import pandas as pd
 import logging
 
 class MomentumStrategy:
     def __init__(self, broker):
         self.broker = broker
-        self.symbol = "BANKNIFTY"
+        # ^NSEBANK is Yahoo's code for Bank Nifty
+        self.symbol = "^NSEBANK" 
 
     def check_momentum_breakout(self):
-        """
-        Logic: If the current close is higher than the previous 4 candles' high,
-        we have strong upward momentum. Buy ATM Call Option.
-        """
-        logging.info("Analyzing Bank Nifty Momentum...")
+        logging.info("Analyzing REAL Bank Nifty Momentum...")
         
-        # 1. Fetch Data
+        # 1. Fetch Real Data
         data = self.broker.get_historical_data(self.symbol)
+        
+        if not data or len(data["close"]) < 5:
+            logging.warning("Not enough data to run strategy.")
+            return "HOLD", 0
+
         closes = data["close"]
         highs = data["high"]
+        current_spot_price = data["latest_price"]
 
         current_close = closes[-1]
         previous_highs_max = max(highs[-5:-1]) # Highest high of last 4 candles
 
         # 2. Strategy Logic
         if current_close > previous_highs_max:
-            logging.info(f"BREAKOUT DETECTED! Current Close ({current_close}) > Prev Highs ({previous_highs_max})")
-            return "BUY_CALL"
-        elif current_close < min(data["close"][-5:-1]):
-            logging.info("BREAKDOWN DETECTED! Strong downward momentum.")
-            return "BUY_PUT"
+            logging.info(f"📈 BREAKOUT DETECTED! Current Close ({current_close}) > Prev Highs ({round(previous_highs_max, 2)})")
+            return "BUY_CALL", current_spot_price
+            
+        elif current_close < min(closes[-5:-1]):
+            logging.info("📉 BREAKDOWN DETECTED! Strong downward momentum.")
+            return "BUY_PUT", current_spot_price
+            
         else:
-            logging.info("Market in range. No trade.")
-            return "HOLD"
+            logging.info("⚖️ Market is in range. No trade setup found.")
+            return "HOLD", current_spot_price
 
-    def execute_trade(self, signal):
+    def execute_trade(self, signal, current_price):
         if signal == "BUY_CALL":
-            # In live market, you dynamically find the ATM strike (e.g., BANKNIFTY24MAY44500CE)
-            option_symbol = "BANKNIFTY_ATM_CE" 
-            self.broker.place_order(option_symbol, qty=15, transaction_type="BUY")
+            # We log the action we WOULD take in the live F&O market
+            option_symbol = f"BANKNIFTY_ATM_CE (Spot: {current_price})" 
+            self.broker.place_order(option_symbol, qty=15, transaction_type="BUY", current_price=current_price)
         
         elif signal == "BUY_PUT":
-            option_symbol = "BANKNIFTY_ATM_PE"
-            self.broker.place_order(option_symbol, qty=15, transaction_type="BUY")
+            option_symbol = f"BANKNIFTY_ATM_PE (Spot: {current_price})"
+            self.broker.place_order(option_symbol, qty=15, transaction_type="BUY", current_price=current_price)
