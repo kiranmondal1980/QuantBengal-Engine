@@ -126,13 +126,14 @@ with tab3:
     st.markdown("<h1 style='color:#1e3a8a; margin-top:0;'>🎓 QuantBengal Master Tutorial</h1>", unsafe_allow_html=True)
     st.markdown("<p style='color:#64748b;'>Welcome to the future of automated trading. Follow this guide to master the platform.</p><hr>", unsafe_allow_html=True)
 
-    with tab4:
+with tab4:
+    # Notice the 4 spaces before st.markdown
     st.markdown("### 📊 30-Day Historical Performance Audit")
-    st.write("This module runs the 'Trend Rider' logic through real market data from the last 30 days to verify accuracy.")
+    st.write("This module runs the 'Trend Rider' logic through real market data from the last 30 days.")
     
     if st.button("🚀 RUN BACKTEST"):
         with st.spinner("Analyzing 30 days of market candles..."):
-            # 1. Fetch Real Data for Nifty 50
+            # All following lines must be indented further...
             hist_data = yf.download("^NSEI", period="1mo", interval="15m")
             
             if not hist_data.empty:
