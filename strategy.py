@@ -1,5 +1,6 @@
 import pandas as pd
 import logging
+from ta.trend import EMAIndicator
 from ta.momentum import RSIIndicator
 
 class MomentumStrategy:
@@ -7,27 +8,37 @@ class MomentumStrategy:
         self.broker = broker
 
     def check_and_trade(self):
+        logging.info("Analyzing Bank Nifty Momentum Strategy (9/21 EMA + RSI)...")
         candles = self.broker.get_data()
         
-        # FIX: Check if we have enough data (at least 15 candles for RSI 14)
-        if not candles or len(candles) < 15:
-            logging.warning(f"Not enough data yet. Received {len(candles) if candles else 0} candles.")
+        if not candles or len(candles) < 30:
+            logging.warning("Not enough data to calculate EMA/RSI. Waiting...")
             return
             
-        # Convert to DataFrame
+        # 1. Convert to DataFrame
         df = pd.DataFrame(candles, columns=['ts', 'open', 'high', 'low', 'close', 'vol'])
         
-        # Calculate RSI
-        rsi = RSIIndicator(close=df['close'], window=14).rsi()
-        current_rsi = rsi.iloc[-1]
+        # 2. Calculate Indicators
+        df['ema_9'] = EMAIndicator(close=df['close'], window=9).ema_indicator()
+        df['ema_21'] = EMAIndicator(close=df['close'], window=21).ema_indicator()
+        df['rsi'] = RSIIndicator(close=df['close'], window=14).rsi()
         
-        logging.info(f"Current RSI: {round(current_rsi, 2)}")
+        # 3. Get the latest completed candle data
+        latest = df.iloc[-1]
+        previous = df.iloc[-2]
         
-        if current_rsi < 30:
-            logging.info("RSI < 30 (Oversold). Triggering BUY_CALL.")
+        logging.info(f"Current Price: {latest['close']} | 9 EMA: {round(latest['ema_9'],2)} | 21 EMA: {round(latest['ema_21'],2)} | RSI: {round(latest['rsi'],2)}")
+        
+        # 4. TRADING LOGIC
+        # Condition 1: Bullish Crossover (9 crosses above 21) AND RSI shows strength (> 55)
+        if previous['ema_9'] <= previous['ema_21'] and latest['ema_9'] > latest['ema_21'] and latest['rsi'] > 55:
+            logging.info("🟢 STRONG BUY SIGNAL: 9 EMA crossed above 21 EMA. Executing BUY_CALL.")
             self.broker.place_order("BUY_CALL")
-        elif current_rsi > 70:
-            logging.info("RSI > 70 (Overbought). Triggering BUY_PUT.")
+            
+        # Condition 2: Bearish Crossover (9 crosses below 21) AND RSI shows weakness (< 45)
+        elif previous['ema_9'] >= previous['ema_21'] and latest['ema_9'] < latest['ema_21'] and latest['rsi'] < 45:
+            logging.info("🔴 STRONG SELL SIGNAL: 9 EMA crossed below 21 EMA. Executing BUY_PUT.")
             self.broker.place_order("BUY_PUT")
+            
         else:
-            logging.info("RSI is neutral. Waiting for better signal.")
+            logging.info("⚖️ No momentum crossover detected. Holding position.")
