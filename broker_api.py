@@ -22,7 +22,6 @@ class IndianBrokerAPI:
             logging.error(f"Login failed: {e}")
 
     def get_data(self):
-        # Calculate dynamic dates (Last 5 days to ensure we get enough 15m candles)
         ist = pytz.timezone('Asia/Kolkata')
         end_time = datetime.now(ist)
         start_time = end_time - timedelta(days=5)
@@ -32,10 +31,10 @@ class IndianBrokerAPI:
         
         logging.info(f"Fetching data from {from_date_str} to {to_date_str}")
         
-        # 35002 is BankNifty Index
+        # 26009 is the official Angel One token for Nifty Bank Index
         params = {
             "exchange": "NSE",
-            "symboltoken": "35002",
+            "symboltoken": "26009", 
             "interval": "FIFTEEN_MINUTE", 
             "fromdate": from_date_str, 
             "todate": to_date_str
@@ -43,7 +42,14 @@ class IndianBrokerAPI:
         
         try:
             response = self.obj.getCandleData(params)
-            return response.get('data', [])
+            # CRITICAL DEBUG LINE: This tells us exactly what Angel One thinks
+            logging.info(f"Raw API Response: {response}") 
+            
+            if response and response.get('status') == True:
+                return response.get('data', [])
+            else:
+                logging.error(f"API rejected the request. Reason: {response}")
+                return []
         except Exception as e:
             logging.error(f"Failed to fetch data: {e}")
             return []
