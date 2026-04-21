@@ -1,44 +1,47 @@
-import os
 import logging
-import yfinance as yf
+from SmartApi import SmartConnect
+import pyotp
 
 class IndianBrokerAPI:
     def __init__(self):
+        # Retrieve credentials from Environment Variables (GitHub Secrets)
         self.api_key = os.environ.get("BROKER_API_KEY")
-        if not self.api_key:
-            logging.warning("API Keys not found. Running in REAL-MARKET PAPER TRADING mode.")
-
-    def get_historical_data(self, symbol="BANKNIFTY.NS", timeframe="15m"):
-        logging.info(f"Fetching market data for {symbol}...")
+        self.client_id = os.environ.get("CLIENT_ID")
+        self.password = os.environ.get("PASSWORD")
+        self.token = os.environ.get("TOTP_TOKEN")
+        
+        # Initialize connection
+        self.obj = SmartConnect(api_key=self.api_key)
+        
+        # Authenticate
+        totp = pyotp.TOTP(self.token).now()
+        data = self.obj.generateSession(self.client_id, self.password, totp)
+        
+    def get_historical_data(self, symbol_token="35002"): # 35002 is BankNifty Index
+        """
+        Fetches data from Angel One SmartAPI
+        """
         try:
-            data = yf.download(symbol, period="5d", interval=timeframe, progress=False)
+            # Angel One requires a dictionary with exchange and symboltoken
+            historicParam = {
+                "exchange": "NSE",
+                "symboltoken": symbol_token,
+                "interval": "FIFTEEN_MINUTE",
+                "fromdate": "2024-05-20 09:15", 
+                "todate": "2024-05-21 15:30"
+            }
+            response = self.obj.getCandleData(historicParam)
             
-            # IF DATA IS EMPTY (Market Closed), return Mock Data so the Dashboard works
-            if data.empty:
-                logging.warning("Market closed. Returning MOCK data for UI testing.")
-                return {
-                    "close": [44000, 44100, 44200, 44300, 44400],
-                    "high": [44050, 44150, 44250, 44350, 44450],
-                    "latest_price": 44400
-                }
+            # response['data'] is a list of [timestamp, open, high, low, close, volume]
+            candles = response['data']
+            closes = [c[4] for c in candles]
+            highs = [c[2] for c in candles]
             
-            # Otherwise return Real Data
             return {
-                "close": data['Close'].tolist(),
-                "high": data['High'].tolist(),
-                "latest_price": round(float(data['Close'].iloc[-1]), 2)
+                "close": closes,
+                "high": highs,
+                "latest_price": closes[-1]
             }
         except Exception as e:
-            logging.error(f"Error: {e}")
+            logging.error(f"Angel One API Error: {e}")
             return None
-
-    def place_order(self, symbol, qty, transaction_type, current_price, order_type="MARKET"):
-        # Restored your detailed logging format
-        logging.info("==================================================")
-        logging.info(f"🚨 PAPER TRADE EXECUTED: {transaction_type} 🚨")
-        logging.info(f"Instrument: {symbol}")
-        logging.info(f"Quantity: {qty}")
-        logging.info(f"Order Type: {order_type}")
-        logging.info(f"Market Spot Price at Execution: {current_price}")
-        logging.info("==================================================")
-        return {"status": "paper_success", "price": current_price}
