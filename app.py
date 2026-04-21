@@ -164,6 +164,8 @@ with tab3:
                 
                 res_df = pd.DataFrame(trades)
                 if not res_df.empty:
+                    res_df['Date'] = pd.to_datetime(res_df['Date']).dt.tz_convert('Asia/Kolkata')
+                    res_df['Date'] = res_df['Date'].dt.strftime('%d-%m-%Y %H:%M')
                     # Double ensure Points is float for math
                     res_df['Points'] = res_df['Points'].astype(float)
                     
