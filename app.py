@@ -4,6 +4,7 @@ from broker_api import IndianBrokerAPI
 from ta.trend import EMAIndicator
 from ta.momentum import RSIIndicator
 from ta.volatility import BollingerBands
+import yfinance as yf
 
 # --- 1. CONFIGURATION ---
 st.set_page_config(page_title="QuantBengal Pro | Institutional Terminal", layout="wide", page_icon="📈")
@@ -43,7 +44,7 @@ st.markdown("""
 st.markdown('<div class="header-bar"><h1 class="main-title">QUANTBENGAL <span class="pro-tag">PRO</span></h1><div style="color:#10b981; font-weight:700;">● PRODUCTION ENGINE LIVE</div></div>', unsafe_allow_html=True)
 
 # --- 4. NAVIGATION TABS ---
-tab1, tab2, tab3 = st.tabs(["📈 LIVE TERMINAL", "🔬 STRATEGY SUITE", "🎓 MASTER TUTORIAL"])
+tab1, tab2, tab3, tab4 = st.tabs(["📈 LIVE TRADING VIEW", "🔬 STRATEGY EXPLAINED", "🎓 MASTER TUTORIAL", "📊 PERFORMANCE AUDIT"])
 
 with tab1:
     col_ctrl, col_main = st.columns([1, 3])
@@ -124,6 +125,70 @@ with tab3:
     st.markdown('<div class="tutorial-container">', unsafe_allow_html=True)
     st.markdown("<h1 style='color:#1e3a8a; margin-top:0;'>🎓 QuantBengal Master Tutorial</h1>", unsafe_allow_html=True)
     st.markdown("<p style='color:#64748b;'>Welcome to the future of automated trading. Follow this guide to master the platform.</p><hr>", unsafe_allow_html=True)
+
+    with tab4:
+    st.markdown("### 📊 30-Day Historical Performance Audit")
+    st.write("This module runs the 'Trend Rider' logic through real market data from the last 30 days to verify accuracy.")
+    
+    if st.button("🚀 RUN BACKTEST"):
+        with st.spinner("Analyzing 30 days of market candles..."):
+            # 1. Fetch Real Data for Nifty 50
+            hist_data = yf.download("^NSEI", period="1mo", interval="15m")
+            
+            if not hist_data.empty:
+                df_hist = hist_data.copy()
+                
+                # 2. Apply Indicators
+                df_hist['ema_9'] = EMAIndicator(close=df_hist['Close'], window=9).ema_indicator()
+                df_hist['ema_21'] = EMAIndicator(close=df_hist['Close'], window=21).ema_indicator()
+                df_hist['rsi'] = RSIIndicator(close=df_hist['Close'], window=14).rsi()
+                
+                # 3. Simulation Logic
+                trades = []
+                in_pos = False
+                entry_price = 0
+                
+                for i in range(1, len(df_hist)):
+                    # Check for BUY_CALL Crossover
+                    if not in_pos:
+                        if df_hist['ema_9'].iloc[i-1] <= df_hist['ema_21'].iloc[i-1] and \
+                           df_hist['ema_9'].iloc[i] > df_hist['ema_21'].iloc[i] and \
+                           df_hist['rsi'].iloc[i] > 55:
+                            
+                            entry_price = df_hist['Close'].iloc[i]
+                            trades.append({'Date': df_hist.index[i], 'Signal': 'BUY_CALL', 'Entry': entry_price})
+                            in_pos = True
+                            
+                    # Exit logic (Exit when EMA crosses back)
+                    elif in_pos:
+                        if df_hist['ema_9'].iloc[i] < df_hist['ema_21'].iloc[i]:
+                            exit_p = df_hist['Close'].iloc[i]
+                            trades[-1]['Exit'] = exit_p
+                            trades[-1]['Points'] = exit_p - entry_price
+                            in_pos = False
+
+                # 4. Show Results
+                res = pd.DataFrame(trades)
+                if not res.empty:
+                    m1, m2, m3 = st.columns(3)
+                    win_rate = (res['Points'] > 0).mean() * 100
+                    total_pnl = res['Points'].sum()
+                    
+                    with m1: st.metric("WIN RATE", f"{win_rate:.1f}%")
+                    with m2: st.metric("TOTAL POINTS Gained", f"+{total_pnl:.1f}")
+                    with m3: st.metric("TOTAL SIGNALS", len(res))
+                    
+                    # Charting the performance
+                    st.markdown("#### Cumulative Profit Curve")
+                    res['Cumulative'] = res['Points'].cumsum()
+                    st.line_chart(res.set_index('Date')['Cumulative'])
+                    
+                    st.markdown("#### Detailed Backtest Trade Log")
+                    st.dataframe(res.style.format(precision=2), use_container_width=True)
+                else:
+                    st.warning("No signals were found in this 30-day period.")
+            else:
+                st.error("Failed to fetch historical data from Yahoo Finance.")
     
     # STEP 1
     st.markdown("""<div class="tut-step">
