@@ -1,9 +1,10 @@
-streamlit
 pandas
 numpy
 ta
 requests
 pytz
 yfinance
-flask
-pydantic
+smartapi-python
+pyotp
+logzero
+websocket-client
