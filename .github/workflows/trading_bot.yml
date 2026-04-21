@@ -2,14 +2,10 @@ name: QuantBengal Algo F&O Engine
 
 on:
   schedule:
-    # CRON Schedule: Runs every 15 minutes
-    # Time is in UTC! Indian Standard Time (IST) is UTC + 5:30.
-    # Market Open: 9:15 AM IST = 3:45 AM UTC
-    # Market Close: 3:30 PM IST = 10:00 AM UTC
-    # This CRON runs every 15 mins Monday-Friday between 3:45 AM and 10:00 AM UTC
+    # Runs every 15 minutes during market hours
     - cron: '*/15 3-10 * * 1-5'
   
-  # This allows you to click a button in GitHub to run it manually anytime
+  # Allows manual triggering
   workflow_dispatch: 
 
 jobs:
@@ -18,10 +14,10 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Python 3.10
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
@@ -32,9 +28,9 @@ jobs:
 
       - name: Run QuantBengal Engine
         env:
-          # Pulling secure keys from your GitHub Repository Secrets
+          # These names must match EXACTLY the names in your GitHub Secrets
           BROKER_API_KEY: ${{ secrets.BROKER_API_KEY }}
-          BROKER_API_SECRET: ${{ secrets.BROKER_API_SECRET }}
-          BROKER_ACCESS_TOKEN: ${{ secrets.BROKER_ACCESS_TOKEN }}
-        run: |
-          python main.py
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          PASSWORD: ${{ secrets.PASSWORD }}
+          TOTP_TOKEN: ${{ secrets.TOTP_TOKEN }}
+        run: python main.py
