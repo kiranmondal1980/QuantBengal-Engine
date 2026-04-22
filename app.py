@@ -34,20 +34,20 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap');
 
 :root {
-    --bg:       #080c14;
-    --surface:  #0d1526;
-    --surface2: #111d35;
-    --border:   #1a2d50;
-    --blue:     #1d6dff;
-    --blue-dim: #1d6dff22;
-    --green:    #00e87b;
-    --green-dim:#00e87b20;
-    --red:      #ff3b5c;
-    --red-dim:  #ff3b5c20;
-    --amber:    #ffb800;
-    --amber-dim:#ffb80020;
-    --text:     #e2ecff;
-    --muted:    #4a6080;
+    --bg:       #f0f4f8;
+    --surface:  #ffffff;
+    --surface2: #f8fafc;
+    --border:   #dde3ed;
+    --blue:     #1a56db;
+    --blue-dim: #1a56db15;
+    --green:    #0a7c4b;
+    --green-dim:#0a7c4b12;
+    --red:      #c81e3a;
+    --red-dim:  #c81e3a12;
+    --amber:    #b45309;
+    --amber-dim:#b4530912;
+    --text:     #0f172a;
+    --muted:    #64748b;
     --mono:     'Space Mono', monospace;
     --sans:     'DM Sans', sans-serif;
 }
@@ -64,6 +64,7 @@ st.markdown("""
 #MainMenu, footer, header { visibility: hidden; }
 .block-container { padding: 0 !important; max-width: 100% !important; }
 section[data-testid="stSidebar"] > div { background: var(--surface) !important; border-right: 1px solid var(--border); }
+section[data-testid="stSidebar"] * { color: var(--text) !important; }
 
 /* ── TOP BAR ── */
 .topbar {
@@ -240,6 +241,10 @@ section[data-testid="stSidebar"] > div { background: var(--surface) !important; 
     background: var(--bg) !important;
     padding: 0 !important;
 }
+/* Light mode widget text fix */
+.stSelectbox label, .stNumberInput label, .stSlider label, .stToggle label,
+.stTextInput label { color: var(--text) !important; }
+.stSelectbox > div > div { color: var(--text) !important; }
 .stAlert { border-radius: 8px !important; }
 div[data-testid="stMetric"] {
     background: var(--surface) !important;
@@ -273,7 +278,7 @@ if "strategy" not in st.session_state:
 
 # ─── SIDEBAR ─────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown('<div style="padding:20px 16px 10px;"><span style="font-family:Space Mono,monospace;font-size:18px;font-weight:700;color:#e2ecff;">QUANT<span style="color:#1d6dff;">BENGAL</span></span><br><span style="font-family:Space Mono,monospace;font-size:9px;color:#4a6080;letter-spacing:2px;">PRO TRADING ENGINE</span></div>', unsafe_allow_html=True)
+    st.markdown('<div style="padding:20px 16px 10px;"><span style="font-family:Space Mono,monospace;font-size:18px;font-weight:700;color:#0f172a;">QUANT<span style="color:#1a56db;">BENGAL</span></span><br><span style="font-family:Space Mono,monospace;font-size:9px;color:#64748b;letter-spacing:2px;">PRO TRADING ENGINE</span></div>', unsafe_allow_html=True)
 
     st.markdown('<div class="sidebar-section"><div class="sidebar-label">Connection</div>', unsafe_allow_html=True)
 
@@ -332,10 +337,10 @@ with st.sidebar:
         now_ist.replace(hour=9,minute=15) <= now_ist <= now_ist.replace(hour=15,minute=30)
     )
     st.markdown(f"""
-    <div style="padding:14px 16px;font-family:Space Mono,monospace;font-size:10px;color:#4a6080;">
+    <div style="padding:14px 16px;font-family:Space Mono,monospace;font-size:10px;color:#64748b;border-top:1px solid var(--border);">
         <div>🕐 {now_ist.strftime('%H:%M:%S IST')}</div>
-        <div style="margin-top:4px;">Market: {'<span style="color:#00e87b;">OPEN</span>' if mkt_open else '<span style="color:#ff3b5c;">CLOSED</span>'}</div>
-        <div style="margin-top:4px;">Mode: {'<span style="color:#ffb800;">PAPER</span>' if st.session_state.dry_run else '<span style="color:#ff3b5c;font-weight:700;">⚡ LIVE</span>'}</div>
+        <div style="margin-top:4px;">Market: {'<span style="color:#0a7c4b;font-weight:700;">OPEN</span>' if mkt_open else '<span style="color:#c81e3a;font-weight:700;">CLOSED</span>'}</div>
+        <div style="margin-top:4px;">Mode: {'<span style="color:#b45309;font-weight:700;">PAPER</span>' if st.session_state.dry_run else '<span style="color:#c81e3a;font-weight:700;">⚡ LIVE</span>'}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -344,15 +349,15 @@ with st.sidebar:
 conn_dot  = '<span class="dot-live"></span>' if st.session_state.connected else '<span class="dot-dead"></span>'
 conn_text = "CONNECTED" if st.session_state.connected else "DISCONNECTED"
 mode_text = "PAPER TRADING" if st.session_state.dry_run else "⚡ LIVE TRADING"
-mode_col  = "#ffb800" if st.session_state.dry_run else "#ff3b5c"
+mode_col  = "#b45309" if st.session_state.dry_run else "#c81e3a"
 
 st.markdown(f"""
 <div class="topbar">
-    <div class="topbar-logo">QUANT<span>BENGAL</span> <span style="font-size:11px;color:#4a6080;font-weight:400;letter-spacing:3px;">PRO</span></div>
+    <div class="topbar-logo">QUANT<span>BENGAL</span> <span style="font-size:11px;color:#64748b;font-weight:400;letter-spacing:3px;">PRO</span></div>
     <div class="topbar-status">
         <span>{conn_dot} ANGEL ONE · {conn_text}</span>
         <span style="color:{mode_col};font-weight:700;">{mode_text}</span>
-        <span style="color:#4a6080;">{st.session_state.strategy.upper()}</span>
+        <span style="color:#64748b;">{st.session_state.strategy.upper()}</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
