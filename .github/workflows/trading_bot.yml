@@ -1,26 +1,62 @@
 name: QuantBengal Engine
+
 on:
   schedule:
+    # Every 15 minutes Mon–Fri during NSE market hours (03:30–10:00 UTC = 09:00–15:30 IST)
     - cron: '*/15 3-10 * * 1-5'
-  workflow_dispatch: 
+  workflow_dispatch:
+    inputs:
+      strategy:
+        description: 'Strategy to run'
+        required: true
+        default: 'MOMENTUM'
+        type: choice
+        options:
+          - MOMENTUM
+          - IRON_CONDOR
+          - BREAKOUT
+      dry_run:
+        description: 'Paper trade only (true = no real orders)'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 jobs:
   run-algo:
     runs-on: ubuntu-latest
-    env: # GLOBAL ENVIRONMENT SETTINGS
+    env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-      
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - run: |
-          pip install -r requirements.txt
-      - name: Run Engine
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run QuantBengal Engine
         env:
-          BROKER_API_KEY: ${{ secrets.BROKER_API_KEY }}
-          CLIENT_ID: ${{ secrets.CLIENT_ID }}
-          PASSWORD: ${{ secrets.PASSWORD }}
-          TOTP_TOKEN: ${{ secrets.TOTP_TOKEN }}
+          BROKER_API_KEY:   ${{ secrets.BROKER_API_KEY }}
+          CLIENT_ID:        ${{ secrets.CLIENT_ID }}
+          PASSWORD:         ${{ secrets.PASSWORD }}
+          TOTP_TOKEN:       ${{ secrets.TOTP_TOKEN }}
+          STRATEGY:         ${{ github.event.inputs.strategy || 'MOMENTUM' }}
+          DRY_RUN:          ${{ github.event.inputs.dry_run || 'true' }}
+          CAPITAL:          ${{ vars.CAPITAL || '200000' }}
+          VIX:              ${{ vars.VIX || '15.0' }}
+          IC_EXPIRY:        ${{ vars.IC_EXPIRY || '23DEC' }}
         run: python main.py
+
+      - name: Upload engine log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-log-${{ github.run_number }}
+          path: "*.log"
+          retention-days: 30
