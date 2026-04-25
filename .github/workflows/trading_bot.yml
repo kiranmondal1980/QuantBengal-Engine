@@ -2,8 +2,9 @@ name: QuantBengal Engine
 
 on:
   schedule:
-    # Every 15 minutes Mon–Fri during NSE market hours (03:30–10:00 UTC = 09:00–15:30 IST)
-    - cron: '*/15 3-10 * * 1-5'
+    # Every 15 min Mon-Fri, 03:30-09:45 UTC = 09:00-15:15 IST
+    # FIX v5.0: was 3-10 (ran until 16:29 IST). Now 3-9 stops at 15:15 IST.
+    - cron: '*/15 3-9 * * 1-5'
   workflow_dispatch:
     inputs:
       strategy:
@@ -16,7 +17,7 @@ on:
           - IRON_CONDOR
           - BREAKOUT
       dry_run:
-        description: 'Paper trade only (true = no real orders)'
+        description: 'Paper trade only (true = no real orders placed)'
         required: true
         default: 'true'
         type: choice
@@ -31,11 +32,21 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Install dependencies
         run: pip install -r requirements.txt
@@ -51,12 +62,13 @@ jobs:
           CAPITAL:          ${{ vars.CAPITAL || '200000' }}
           VIX:              ${{ vars.VIX || '15.0' }}
           IC_EXPIRY:        ${{ vars.IC_EXPIRY || '23DEC' }}
+          BANKNIFTY_SPOT:   ${{ vars.BANKNIFTY_SPOT || '0' }}
         run: python main.py
 
       - name: Upload engine log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: engine-log-${{ github.run_number }}
-          path: "*.log"
+          name: engine-log-${{ github.run_number }}-${{ github.run_attempt }}
+          path: '*.log'
           retention-days: 30
