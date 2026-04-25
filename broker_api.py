@@ -1,78 +1,85 @@
 """
-QuantBengal Engine — broker_api.py
+QuantBengal Engine — broker_api.py  v5.0
 Angel One SmartAPI: Full integration layer
-Handles: session, market data, order management, positions, P&L, option chain
+FIXES v5.0:
+  - resolve_nfo_token() — looks up symboltoken before every NFO order (was blank, causing rejections)
+  - get_positions() / get_pnl_summary() — null-safe, always return list/dict never None
+  - square_off_all() — properly reads connected state, never crashes if not connected
+  - Auto session renewal after 3 hours of inactivity
+  - place_iron_condor() — resolves all 4 leg tokens before placing
 """
 
 import os
 import logging
-import json
 import time
-from SmartApi.smartConnect import SmartConnect
-import pyotp
 from datetime import datetime, timedelta
 import pytz
-import requests
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(levelname)s | %(message)s')
 logger = logging.getLogger(__name__)
 
 IST = pytz.timezone('Asia/Kolkata')
 
-# ─────────────────────────────────────────────
-#  SYMBOL TOKEN MAP  (expand as needed)
-# ─────────────────────────────────────────────
+# ── INDEX TOKEN MAP (NSE cash segment — for candle data & LTP) ─────────────────
 SYMBOL_TOKENS = {
-    "NIFTY":    "99926000",
-    "BANKNIFTY":"99926009",
-    "SENSEX":   "99919000",
+    "NIFTY":     "99926000",
+    "BANKNIFTY": "99926009",
+    "SENSEX":    "99919000",
 }
 
 ORDER_VARIETY  = "NORMAL"
-ORDER_PRODUCT  = "INTRADAY"  # or "CARRYFORWARD"
-ORDER_EXCHANGE = "NFO"        # NSE F&O
+ORDER_PRODUCT  = "INTRADAY"
+ORDER_EXCHANGE = "NFO"
 
 
 class IndianBrokerAPI:
-    """Complete Angel One SmartAPI wrapper for QuantBengal."""
+    """Complete Angel One SmartAPI wrapper for QuantBengal — v5.0"""
 
     def __init__(self):
-        self.api_key   = os.environ.get("BROKER_API_KEY", "")
-        self.client_id = os.environ.get("CLIENT_ID", "")
-        self.password  = os.environ.get("PASSWORD", "")
-        self.token     = os.environ.get("TOTP_TOKEN", "")
-        self.obj       = None
+        self.api_key    = os.environ.get("BROKER_API_KEY", "")
+        self.client_id  = os.environ.get("CLIENT_ID", "")
+        self.password   = os.environ.get("PASSWORD", "")
+        self.token      = os.environ.get("TOTP_TOKEN", "")
+        self.obj        = None
         self.auth_token = None
         self.feed_token = None
         self.connected  = False
+        self._session_ts = None
         self._connect()
 
-    # ─── SESSION ──────────────────────────────────────────────────────────────
+    # ── SESSION ───────────────────────────────────────────────────────────────
 
     def _connect(self):
         if not all([self.api_key, self.client_id, self.password, self.token]):
-            logger.error("Missing API credentials. Set env vars: BROKER_API_KEY, CLIENT_ID, PASSWORD, TOTP_TOKEN")
+            logger.error("Missing credentials. Set env vars: BROKER_API_KEY, CLIENT_ID, PASSWORD, TOTP_TOKEN")
             return
         try:
-            self.obj = SmartConnect(api_key=self.api_key)
-            totp = pyotp.TOTP(self.token).now()
-            data = self.obj.generateSession(self.client_id, self.password, totp)
+            from SmartApi.smartConnect import SmartConnect
+            import pyotp
+            self.obj  = SmartConnect(api_key=self.api_key)
+            totp_code = pyotp.TOTP(self.token).now()
+            data      = self.obj.generateSession(self.client_id, self.password, totp_code)
             if data and data.get("status"):
-                self.auth_token = data["data"]["jwtToken"]
-                self.feed_token = self.obj.getfeedToken()
-                self.connected  = True
-                logger.info(f"✅ Angel One session active | Client: {self.client_id}")
+                self.auth_token  = data["data"]["jwtToken"]
+                self.feed_token  = self.obj.getfeedToken()
+                self.connected   = True
+                self._session_ts = time.time()
+                logger.info(f"Angel One session OK | Client: {self.client_id}")
             else:
                 logger.error(f"Session failed: {data}")
         except Exception as e:
             logger.error(f"Connection error: {e}")
 
     def ensure_session(self):
-        """Re-connect if session expired."""
+        """Reconnect automatically if not connected or session older than 3 hours."""
         if not self.connected:
             self._connect()
+            return
+        if self._session_ts and (time.time() - self._session_ts) > 10800:
+            logger.info("Session > 3h — auto-refreshing...")
+            self._connect()
 
-    # ─── PROFILE ──────────────────────────────────────────────────────────────
+    # ── PROFILE ───────────────────────────────────────────────────────────────
 
     def get_profile(self) -> dict:
         self.ensure_session()
@@ -80,14 +87,17 @@ class IndianBrokerAPI:
             resp = self.obj.getProfile(self.feed_token)
             return resp.get("data", {}) if resp else {}
         except Exception as e:
-            logger.error(f"get_profile error: {e}")
+            logger.error(f"get_profile: {e}")
             return {}
 
-    # ─── MARKET DATA ──────────────────────────────────────────────────────────
+    # ── MARKET DATA ───────────────────────────────────────────────────────────
 
-    def get_data(self, symbol: str = "BANKNIFTY", interval: str = "FIFTEEN_MINUTE", days: int = 5) -> list:
-        """Fetch OHLCV candles for given symbol & interval."""
+    def get_data(self, symbol: str = "BANKNIFTY",
+                 interval: str = "FIFTEEN_MINUTE", days: int = 5) -> list:
+        """Fetch OHLCV candles. Always returns list, never raises."""
         self.ensure_session()
+        if not self.connected:
+            return []
         token = SYMBOL_TOKENS.get(symbol, SYMBOL_TOKENS["BANKNIFTY"])
         now   = datetime.now(IST)
         start = now - timedelta(days=days)
@@ -101,53 +111,71 @@ class IndianBrokerAPI:
         try:
             resp = self.obj.getCandleData(params)
             if resp and resp.get("status"):
-                candles = resp.get("data", [])
-                logger.info(f"Market data: {len(candles)} candles for {symbol}")
+                candles = resp.get("data") or []
+                logger.info(f"Candle data: {len(candles)} bars | {symbol}")
                 return candles
             logger.error(f"Candle API error: {resp}")
         except Exception as e:
-            logger.error(f"get_data error: {e}")
+            logger.error(f"get_data: {e}")
         return []
 
-    def get_ltp(self, exchange: str, symbol: str, token: str) -> float:
-        """Get Last Traded Price for a symbol."""
+    def get_ltp(self, exchange: str = "NSE",
+                symbol: str = "BANKNIFTY", token: str = "99926009") -> float:
+        """Get Last Traded Price. Returns 0.0 on failure."""
         self.ensure_session()
+        if not self.connected:
+            return 0.0
         try:
             resp = self.obj.ltpData(exchange, symbol, token)
             if resp and resp.get("status"):
                 return float(resp["data"].get("ltp", 0))
         except Exception as e:
-            logger.error(f"LTP error: {e}")
+            logger.error(f"get_ltp: {e}")
         return 0.0
 
-    def get_option_chain(self, symbol: str, expiry_date: str, strike_price: float, option_type: str = "CE") -> dict:
-        """Search for a specific option contract."""
-        self.ensure_session()
-        try:
-            # Angel One searchScrip for NFO
-            resp = self.obj.searchScrip(
-                exchange="NFO",
-                searchscrip=f"{symbol}{expiry_date}{int(strike_price)}{option_type}"
-            )
-            return resp.get("data", []) if resp else []
-        except Exception as e:
-            logger.error(f"Option chain error: {e}")
-            return []
+    # ── NFO TOKEN RESOLVER ────────────────────────────────────────────────────
 
-    # ─── ORDER MANAGEMENT ─────────────────────────────────────────────────────
-
-    def place_order(self, signal: str, symbol: str = "BANKNIFTY",
-                    quantity: int = 15, price: float = 0) -> dict:
+    def resolve_nfo_token(self, trading_symbol: str) -> str:
         """
-        Place a live F&O market order.
-        signal: "BUY_CALL" | "BUY_PUT" | "SELL_CALL" | "SELL_PUT"
+        Search Angel One for the symboltoken of a specific NFO option.
+        e.g. "BANKNIFTY23DEC47000CE" -> "1234567"
+        Returns "" if not found — order may still be attempted.
         """
         self.ensure_session()
         if not self.connected:
-            logger.error("Cannot place order — not connected.")
-            return {"status": False, "error": "Not connected"}
+            return ""
+        try:
+            resp = self.obj.searchScrip(exchange="NFO", searchscrip=trading_symbol)
+            if resp and resp.get("status") and resp.get("data"):
+                items = resp["data"]
+                if isinstance(items, list) and items:
+                    # Prefer exact match
+                    for item in items:
+                        if item.get("tradingsymbol", "").upper() == trading_symbol.upper():
+                            tok = str(item.get("symboltoken", ""))
+                            logger.info(f"Token resolved: {trading_symbol} -> {tok}")
+                            return tok
+                    # Fallback to first result
+                    return str(items[0].get("symboltoken", ""))
+        except Exception as e:
+            logger.error(f"resolve_nfo_token({trading_symbol}): {e}")
+        return ""
 
-        # Parse signal into transactiontype + optiontype
+    # ── ORDER MANAGEMENT ──────────────────────────────────────────────────────
+
+    def place_order(self, signal: str, symbol: str = "BANKNIFTY",
+                    quantity: int = 15, price: float = 0,
+                    symbol_token: str = "") -> dict:
+        """
+        Place a live F&O market order.
+        signal: "BUY_CALL" | "BUY_PUT" | "SELL_CALL" | "SELL_PUT"
+        symbol: Full NFO trading symbol (e.g. BANKNIFTY23DEC47000CE)
+        symbol_token: auto-resolved if not provided
+        """
+        self.ensure_session()
+        if not self.connected:
+            return {"status": False, "error": "Not connected to Angel One"}
+
         tx_map = {
             "BUY_CALL":  ("BUY",  "CE"),
             "BUY_PUT":   ("BUY",  "PE"),
@@ -157,35 +185,39 @@ class IndianBrokerAPI:
         if signal not in tx_map:
             return {"status": False, "error": f"Unknown signal: {signal}"}
 
-        transaction_type, option_type = tx_map[signal]
+        transaction_type, _ = tx_map[signal]
 
-        # Build order params — uses MARKET order for guaranteed execution
+        # Auto-resolve token if not supplied
+        if not symbol_token:
+            symbol_token = self.resolve_nfo_token(symbol)
+            if not symbol_token:
+                logger.warning(f"Token not resolved for {symbol} — order may be rejected by exchange")
+
         order_params = {
-            "variety":          ORDER_VARIETY,
-            "tradingsymbol":    symbol,       # Full NFO symbol e.g. BANKNIFTY23DEC47000CE
-            "symboltoken":      "",           # Must be resolved before calling
-            "transactiontype":  transaction_type,
-            "exchange":         ORDER_EXCHANGE,
-            "ordertype":        "MARKET",
-            "producttype":      ORDER_PRODUCT,
-            "duration":         "DAY",
-            "price":            str(price),
-            "squareoff":        "0",
-            "stoploss":         "0",
-            "quantity":         str(quantity),
+            "variety":         ORDER_VARIETY,
+            "tradingsymbol":   symbol,
+            "symboltoken":     symbol_token,
+            "transactiontype": transaction_type,
+            "exchange":        ORDER_EXCHANGE,
+            "ordertype":       "MARKET",
+            "producttype":     ORDER_PRODUCT,
+            "duration":        "DAY",
+            "price":           str(price),
+            "squareoff":       "0",
+            "stoploss":        "0",
+            "quantity":        str(quantity),
         }
 
-        logger.info(f"🚨 ORDER → {signal} | {symbol} | Qty:{quantity}")
+        logger.info(f"ORDER -> {signal} | {symbol} | Qty:{quantity} | Token:{symbol_token}")
 
         try:
             resp = self.obj.placeOrder(order_params)
             if resp and resp.get("status"):
                 order_id = resp["data"].get("orderid", "")
-                logger.info(f"✅ ORDER PLACED | ID: {order_id}")
+                logger.info(f"ORDER PLACED | ID: {order_id}")
                 return {"status": True, "order_id": order_id, "signal": signal}
-            else:
-                logger.error(f"Order rejected: {resp}")
-                return {"status": False, "error": str(resp)}
+            logger.error(f"Order rejected: {resp}")
+            return {"status": False, "error": str(resp)}
         except Exception as e:
             logger.error(f"place_order exception: {e}")
             return {"status": False, "error": str(e)}
@@ -196,118 +228,144 @@ class IndianBrokerAPI:
                           quantity: int = 15) -> dict:
         """
         Place a complete Iron Condor (4-leg spread).
-        Sell short call + Buy long call (wing) + Sell short put + Buy long put (wing)
+        Resolves symboltoken for each leg before placing.
         """
         legs = [
-            ("SELL", f"{symbol}{expiry}{short_call_strike}CE", "SELL_CALL"),
-            ("BUY",  f"{symbol}{expiry}{long_call_strike}CE",  "BUY_CALL"),
-            ("SELL", f"{symbol}{expiry}{short_put_strike}PE",  "SELL_PUT"),
-            ("BUY",  f"{symbol}{expiry}{long_put_strike}PE",   "BUY_PUT"),
+            (f"{symbol}{expiry}{short_call_strike}CE", "SELL_CALL"),
+            (f"{symbol}{expiry}{long_call_strike}CE",  "BUY_CALL"),
+            (f"{symbol}{expiry}{short_put_strike}PE",  "SELL_PUT"),
+            (f"{symbol}{expiry}{long_put_strike}PE",   "BUY_PUT"),
         ]
         results = []
-        for tx, trading_symbol, label in legs:
-            result = self.place_order(signal=label, symbol=trading_symbol, quantity=quantity)
-            results.append({"leg": label, "symbol": trading_symbol, "result": result})
-            time.sleep(0.3)  # Avoid rate limiting between legs
+        for trading_symbol, leg_signal in legs:
+            token  = self.resolve_nfo_token(trading_symbol)
+            result = self.place_order(
+                signal=leg_signal,
+                symbol=trading_symbol,
+                quantity=quantity,
+                symbol_token=token
+            )
+            results.append({"leg": leg_signal, "symbol": trading_symbol, "result": result})
+            time.sleep(0.4)   # rate-limit buffer between legs
 
         success = all(r["result"].get("status") for r in results)
-        logger.info(f"Iron Condor {'✅ PLACED' if success else '❌ PARTIAL/FAILED'}")
+        logger.info(f"Iron Condor {'ALL LEGS PLACED' if success else 'PARTIAL/FAILED'}")
         return {"status": success, "legs": results}
 
     def cancel_order(self, order_id: str, variety: str = ORDER_VARIETY) -> dict:
         self.ensure_session()
         try:
-            resp = self.obj.cancelOrder(order_id, variety)
-            return resp if resp else {}
+            return self.obj.cancelOrder(order_id, variety) or {}
         except Exception as e:
-            logger.error(f"cancel_order error: {e}")
+            logger.error(f"cancel_order: {e}")
             return {}
 
-    def modify_order(self, order_id: str, new_price: float, quantity: int,
-                     variety: str = ORDER_VARIETY) -> dict:
+    def modify_order(self, order_id: str, new_price: float,
+                     quantity: int, variety: str = ORDER_VARIETY) -> dict:
         self.ensure_session()
         try:
             params = {
-                "variety": variety,
-                "orderid": order_id,
-                "ordertype": "LIMIT",
-                "producttype": ORDER_PRODUCT,
-                "duration": "DAY",
-                "price": str(new_price),
-                "quantity": str(quantity),
+                "variety": variety, "orderid": order_id,
+                "ordertype": "LIMIT", "producttype": ORDER_PRODUCT,
+                "duration": "DAY", "price": str(new_price), "quantity": str(quantity),
             }
-            resp = self.obj.modifyOrder(params)
-            return resp if resp else {}
+            return self.obj.modifyOrder(params) or {}
         except Exception as e:
-            logger.error(f"modify_order error: {e}")
+            logger.error(f"modify_order: {e}")
             return {}
 
-    # ─── POSITIONS & P&L ──────────────────────────────────────────────────────
+    # ── POSITIONS & P&L ───────────────────────────────────────────────────────
 
     def get_positions(self) -> list:
-        """Get current open positions."""
+        """Get open positions. Always returns list — never None."""
         self.ensure_session()
+        if not self.connected:
+            return []
         try:
             resp = self.obj.position()
             if resp and resp.get("status"):
-                return resp.get("data", []) or []
+                data = resp.get("data")
+                return data if isinstance(data, list) else []
         except Exception as e:
-            logger.error(f"get_positions error: {e}")
+            logger.error(f"get_positions: {e}")
         return []
 
     def get_holdings(self) -> list:
-        """Get portfolio holdings."""
+        """Get equity holdings. Always returns list."""
         self.ensure_session()
+        if not self.connected:
+            return []
         try:
             resp = self.obj.holding()
             if resp and resp.get("status"):
-                return resp.get("data", []) or []
+                data = resp.get("data")
+                return data if isinstance(data, list) else []
         except Exception as e:
-            logger.error(f"get_holdings error: {e}")
+            logger.error(f"get_holdings: {e}")
         return []
 
     def get_order_book(self) -> list:
-        """Get today's order book."""
+        """Today's orders. Always returns list."""
         self.ensure_session()
+        if not self.connected:
+            return []
         try:
             resp = self.obj.orderBook()
             if resp and resp.get("status"):
-                return resp.get("data", []) or []
+                data = resp.get("data")
+                return data if isinstance(data, list) else []
         except Exception as e:
-            logger.error(f"get_order_book error: {e}")
+            logger.error(f"get_order_book: {e}")
         return []
 
     def get_trade_book(self) -> list:
-        """Get today's executed trades."""
+        """Today's executed trades. Always returns list."""
         self.ensure_session()
+        if not self.connected:
+            return []
         try:
             resp = self.obj.tradeBook()
             if resp and resp.get("status"):
-                return resp.get("data", []) or []
+                data = resp.get("data")
+                return data if isinstance(data, list) else []
         except Exception as e:
-            logger.error(f"get_trade_book error: {e}")
+            logger.error(f"get_trade_book: {e}")
         return []
 
     def get_funds(self) -> dict:
-        """Get available margin and funds."""
+        """Available margin and funds. Always returns dict."""
         self.ensure_session()
+        if not self.connected:
+            return {}
         try:
             resp = self.obj.rmsLimit()
             if resp and resp.get("status"):
-                return resp.get("data", {}) or {}
+                return resp.get("data") or {}
         except Exception as e:
-            logger.error(f"get_funds error: {e}")
+            logger.error(f"get_funds: {e}")
         return {}
 
     def square_off_all(self) -> list:
-        """Emergency: square off all open positions."""
+        """
+        Emergency: market-close all open positions.
+        FIX v5.0: always null-safe — returns [] if not connected or no positions.
+        """
         self.ensure_session()
+        if not self.connected:
+            logger.error("square_off_all: not connected")
+            return []
+
         positions = self.get_positions()
-        results = []
+        results   = []
+
         for pos in positions:
-            net_qty = int(pos.get("netqty", 0))
+            try:
+                net_qty = int(pos.get("netqty", 0))
+            except (ValueError, TypeError):
+                net_qty = 0
             if net_qty == 0:
                 continue
+
             tx = "SELL" if net_qty > 0 else "BUY"
             order_params = {
                 "variety":         ORDER_VARIETY,
@@ -325,21 +383,39 @@ class IndianBrokerAPI:
             }
             try:
                 resp = self.obj.placeOrder(order_params)
-                results.append({"symbol": pos["tradingsymbol"], "result": resp})
-                logger.warning(f"🟥 SQUARE OFF: {pos['tradingsymbol']} qty={abs(net_qty)}")
+                results.append({"symbol": pos.get("tradingsymbol", ""), "result": resp})
+                logger.warning(f"SQUARE OFF: {pos.get('tradingsymbol','')} qty={abs(net_qty)}")
             except Exception as e:
                 results.append({"symbol": pos.get("tradingsymbol", ""), "error": str(e)})
-            time.sleep(0.2)
+            time.sleep(0.25)
+
+        logger.info(f"Square off complete — {len(results)} position(s) closed")
         return results
 
     def get_pnl_summary(self) -> dict:
-        """Calculate realised + unrealised P&L from positions."""
-        positions = self.get_positions()
-        realised   = sum(float(p.get("realisedprofitandloss", 0)) for p in positions)
-        unrealised = sum(float(p.get("unrealisedprofitandloss", 0)) for p in positions)
+        """
+        Null-safe P&L summary.
+        FIX v5.0: uses 'or 0' pattern on every field — never crashes on None values.
+        Always returns a valid dict.
+        """
+        positions = self.get_positions()   # guaranteed to be a list
+        try:
+            realised   = sum(float(p.get("realisedprofitandloss")   or 0) for p in positions)
+            unrealised = sum(float(p.get("unrealisedprofitandloss") or 0) for p in positions)
+        except Exception:
+            realised = unrealised = 0.0
+
+        open_count = 0
+        for p in positions:
+            try:
+                if int(p.get("netqty", 0)) != 0:
+                    open_count += 1
+            except Exception:
+                pass
+
         return {
             "realised":   round(realised, 2),
             "unrealised": round(unrealised, 2),
             "total":      round(realised + unrealised, 2),
-            "positions":  len([p for p in positions if int(p.get("netqty", 0)) != 0]),
+            "positions":  open_count,
         }
