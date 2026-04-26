@@ -1,5 +1,5 @@
 """
-QuantBengal Engine — strategy.py  v3.1
+QuantBengal Engine — strategy.py  v3.2
 AUDIT ENHANCEMENTS:
 - All 6 strategies 100% synchronized with app.py frontend logic
 - Global ATM rounding imported from broker_api (50/100 step)
@@ -7,6 +7,7 @@ AUDIT ENHANCEMENTS:
 - IronCondorStrategy uses shared _nfo_symbol + get_atm_strike
 - MorningBreakoutStrategy bug fix (orb_low undefined reference fixed)
 - Improved logging with human-readable context
+- [NEW v3.2] Dynamic Lot Sizing: Queries broker cache for exact NSE/BSE lot sizes
 """
 
 import pandas as pd
@@ -321,15 +322,27 @@ class MomentumStrategy:
             logger.info("DRY_RUN mode — no real order placed.")
             return {**result, "status": "DRY_RUN"}
 
-        # Determine lot size dynamically per index
-        qty_map = {"NIFTY": 25, "SENSEX": 10, "BANKNIFTY": 15}
-        qty = qty_map.get(symbol.upper(), 15) * self.risk.position_size()
+        # ── DYNAMIC LOT RESOLUTION (Fix: Removes hardcoded quantities) ──
+        opt_type = "CE" if "CALL" in signal else "PE"
+        spot = result.get("price", 0)
+        
+        # Calculate ATM symbol to get specific contract
+        if symbol.upper() in ["NIFTY", "BANKNIFTY", "SENSEX"] and spot > 0 and expiry:
+            trading_symbol = get_atm_symbol(symbol.upper(), spot, expiry, opt_type)
+        else:
+            trading_symbol = symbol
+
+        # Fetch live lot size from Angel One Scrip Master
+        unit_lot_size = self.broker.get_lotsize(trading_symbol)
+        qty = unit_lot_size * self.risk.position_size()
+        
+        logger.info(f"Dynamic quantity resolved: {qty} (Unit Lot: {unit_lot_size}) for {trading_symbol}")
 
         order = self.broker.place_order(
             signal=signal,
             symbol=symbol,
             quantity=qty,
-            spot_price=result.get("price", 0),
+            spot_price=spot,
             expiry=expiry,
         )
         if order.get("status"):
@@ -403,7 +416,11 @@ class IronCondorStrategy:
             return {**result, "status": "DRY_RUN"}
 
         strikes  = result["strikes"]
-        quantity = result["lots"] * 15  # 1 lot = 15 units for BANKNIFTY
+        
+        # ── DYNAMIC LOT RESOLUTION ──
+        sample_symbol = _nfo_symbol("BANKNIFTY", expiry, strikes["short_call"], "CE")
+        unit_lot_size = self.broker.get_lotsize(sample_symbol)
+        quantity = result["lots"] * unit_lot_size
 
         order = self.broker.place_iron_condor(
             symbol            = "BANKNIFTY",
@@ -446,7 +463,7 @@ class MorningBreakoutStrategy:
 
         # Opening Range: first candle of the session
         orb_h  = float(df.iloc[0]['high'])
-        orb_l  = float(df.iloc[0]['low'])   # BUG FIX: was 'orb_low' (undefined) in v3.0
+        orb_l  = float(df.iloc[0]['low'])   
         price  = float(df.iloc[-1]['close'])
         avg_vol = df['vol'].mean()
         vol_spike = float(df.iloc[-1]['vol']) > (avg_vol * 1.5)
