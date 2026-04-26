@@ -1,12 +1,13 @@
 """
-QuantBengal Engine — broker_api.py  v6.2
-AUDIT ENHANCEMENTS:
+QuantBengal Engine — broker_api.py  v6.3
+AUDIT ENHANCEMENTS (v6.2 + v6.3):
 - Human-readable error messages replacing raw Python exceptions
 - Thread-safe instrument token cache with RLock
 - Verified BSE/NSE dynamic exchange routing for SENSEX
 - Global ATM strike rounding (50 for NIFTY, 100 for BANKNIFTY/SENSEX)
 - Improved session renewal with exponential back-off
 - Sanitised logging (no credential leakage)
+- [NEW v6.3] Dynamic Lot Size caching from Scrip Master (Nifty 65, BankNifty 30, Sensex 20 Fallbacks)
 """
 
 import os
@@ -135,7 +136,7 @@ def get_atm_symbol(underlying: str, spot_price: float, expiry: str, opt_type: st
 class IndianBrokerAPI:
     """
     Angel One SmartAPI wrapper.
-    Thread-safe token cache; human-readable error propagation.
+    Thread-safe token cache; human-readable error propagation; dynamic lot sizing.
     """
 
     def __init__(self):
@@ -148,9 +149,10 @@ class IndianBrokerAPI:
         self.feed_token = None
         self.connected  = False
 
-        # Thread-safe cache for symbol → token mappings
+        # Thread-safe cache for symbol → token mappings and lot sizes
         self._cache_lock     = threading.RLock()
         self._token_cache: dict[str, str] = {}
+        self._lotsize_cache: dict[str, int] = {}  # NEW v6.3 Feature
 
         self._connect()
 
@@ -182,11 +184,11 @@ class IndianBrokerAPI:
             logger.info("Session not active — attempting reconnect…")
             self._connect()
 
-    # ── Instrument master ──────────────────────────────────────────────────
+    # ── Instrument master & Dynamic Lot Sizes ──────────────────────────────
 
     def _load_instrument_master(self):
         """
-        Downloads the full Angel One scrip master and caches NFO + BFO tokens.
+        Downloads the full Angel One scrip master and caches NFO + BFO tokens AND lot sizes.
         BFO = BSE Futures & Options (required for SENSEX contracts).
         """
         try:
@@ -199,10 +201,14 @@ class IndianBrokerAPI:
                     exch = inst.get("exch_seg", "")
                     sym  = inst.get("symbol", "")
                     tok  = inst.get("token", "")
+                    lot  = str(inst.get("lotsize", ""))
+                    
                     if exch in ("NFO", "BFO") and sym and tok:
                         self._token_cache[sym.upper()] = tok
+                        if lot.isdigit():
+                            self._lotsize_cache[sym.upper()] = int(lot)
                         count += 1
-            logger.info(f"Instrument master loaded: {count} NFO/BFO tokens cached.")
+            logger.info(f"Instrument master loaded: {count} NFO/BFO tokens and lot sizes cached.")
         except Exception as e:
             logger.warning(
                 f"Instrument master load failed: {_human_error(str(e))} — "
@@ -239,6 +245,25 @@ class IndianBrokerAPI:
             "The contract may not exist for this expiry — verify strike and expiry on NSE/BSE."
         )
         return ""
+
+    def get_lotsize(self, trading_symbol: str) -> int:
+        """
+        [NEW v6.3] Dynamically fetch the official exchange lot size from the Scrip Master cache.
+        Falls back to 2024-25 revised lot sizes if cache misses.
+        """
+        sym = trading_symbol.upper()
+        with self._cache_lock:
+            if sym in self._lotsize_cache:
+                return self._lotsize_cache[sym]
+
+        # Fallback to safe hardcoded map if cache fails (2024-25 revisions)
+        FALLBACK_LOTS = {"NIFTY": 65, "BANKNIFTY": 30, "SENSEX": 20}
+        for key, val in FALLBACK_LOTS.items():
+            if key in sym:
+                return val
+        
+        logger.warning(f"Lot size not found for {sym}, defaulting to 1.")
+        return 1
 
     # ── Market data ────────────────────────────────────────────────────────
 
@@ -322,7 +347,7 @@ class IndianBrokerAPI:
                 "status": False,
                 "error": (
                     f"Could not find option contract '{trading_symbol}'. "
-                    "Verify the expiry code is correct (format: DDMMM) and the strike exists on NSE."
+                    "Verify the expiry code is correct (format: DDMMM) and the strike exists on NSE/BSE."
                 ),
             }
 
