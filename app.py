@@ -854,11 +854,19 @@ with tab_term:
         else:
             st.markdown(f'<div class="sig-hold">⚖ HOLD — {reason}</div>', unsafe_allow_html=True)
 
-        # ── Execution logic ──────────────────────────────────────────────
+       # ── Execution logic ──────────────────────────────────────────────
         current_time_str = now_ist().strftime("%H:%M")
         is_safe_time     = st.session_state.safe_start <= current_time_str <= st.session_state.safe_end
-        qty_map          = {"NIFTY": 25, "SENSEX": 10, "BANKNIFTY": 15}
-        qty              = qty_map.get(sym.upper(), 15)
+        
+        # 1. Base Lot Size Map (NSE/BSE 2024-25 REVISIONS)
+        qty_map          = {"NIFTY": 65, "SENSEX": 20, "BANKNIFTY": 30}
+        base_qty         = qty_map.get(sym.upper(), 15)
+        
+        # 2. Dynamic Lot Scaling based on Capital (Max 20% allocation per trade)
+        margin_per_lot   = 80000 if sym == "BANKNIFTY" else 100000  # Approx margin proxy
+        allowed_capital  = st.session_state.capital * 0.20
+        num_lots         = max(1, int(allowed_capital / margin_per_lot))
+        total_qty        = base_qty * num_lots
 
         def _log_and_save(entry: dict):
             st.session_state.trade_log.append(entry)
@@ -871,13 +879,13 @@ with tab_term:
                 entry = {"time": now_ist().strftime("%d-%b %H:%M:%S"), "signal": sig, "index": sym,
                          "price": price, "sl": sl_p, "target": tgt_p}
                 if st.session_state.dry_run:
-                    st.success(f"🤖 AUTO PAPER: {sig} on {sym} @ ₹{price:,.0f} | SL ₹{sl_p:,.0f} | TGT ₹{tgt_p:,.0f}")
+                    st.success(f"🤖 AUTO PAPER: {sig} on {sym} ({num_lots} Lots) @ ₹{price:,.0f} | SL ₹{sl_p:,.0f} | TGT ₹{tgt_p:,.0f}")
                     entry.update({"mode": "PAPER-AUTO", "status": "OPEN", "pnl": 0})
                     _log_and_save(entry)
                     st.session_state.last_auto_signal = sig
                 else:
                     try:
-                        order = broker.place_order(signal=sig, symbol=sym, quantity=qty,
+                        order = broker.place_order(signal=sig, symbol=sym, quantity=total_qty,
                                                    price=price, spot_price=price,
                                                    expiry=st.session_state.expiry_date)
                         if order.get("status"):
@@ -899,12 +907,12 @@ with tab_term:
                 entry = {"time": now_ist().strftime("%d-%b %H:%M:%S"), "signal": sig, "index": sym,
                          "price": price, "sl": sl_p, "target": tgt_p}
                 if st.session_state.dry_run:
-                    st.success(f"🧪 PAPER: {sig} on {sym} @ ₹{price:,.0f} | SL ₹{sl_p:,.0f} | TGT ₹{tgt_p:,.0f}")
+                    st.success(f"🧪 PAPER: {sig} on {sym} ({num_lots} Lots) @ ₹{price:,.0f} | SL ₹{sl_p:,.0f} | TGT ₹{tgt_p:,.0f}")
                     entry.update({"mode": "PAPER", "status": "OPEN", "pnl": 0})
                     _log_and_save(entry)
                 else:
                     try:
-                        order = broker.place_order(signal=sig, symbol=sym, quantity=qty,
+                        order = broker.place_order(signal=sig, symbol=sym, quantity=total_qty,
                                                    price=price, spot_price=price,
                                                    expiry=st.session_state.expiry_date)
                         if order.get("status"):
@@ -917,7 +925,6 @@ with tab_term:
                         st.error(f"⚠️ Order error: {_human_order_error(str(e))}")
             else:
                 st.info("⚖ HOLD — no actionable signal. Waiting for strategy confluence.")
-
         # ── Live P&L update for open trades ─────────────────────────────
         if st.session_state.trade_log:
             updated_log  = []
