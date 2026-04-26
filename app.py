@@ -483,7 +483,7 @@ section[data-testid="stSidebar"] .stButton > button { background: rgba(255,255,2
 .gauge-label-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
 .gauge-label { font-family: var(--mono); font-size: 10px; font-weight: 700; }
 .gl-bull { color: var(--emerald); } .gl-bear { color: var(--crimson); } .gl-neut { color: var(--muted); }
-.gauge-track { position: relative; height: 12px; border-radius: 6px; background: var(--border2);
+.gauge-track { position: relative; height: 24px; border-radius: 6px; background: var(--border2);
                overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,.08); }
 .gauge-fill-bull { position: absolute; left: 0; top: 0; height: 100%;
                    background: linear-gradient(90deg,#047857,#10b981); border-radius: 6px 0 0 6px;
@@ -491,7 +491,7 @@ section[data-testid="stSidebar"] .stButton > button { background: rgba(255,255,2
 .gauge-fill-bear { position: absolute; right: 0; top: 0; height: 100%;
                    background: linear-gradient(90deg,#ef4444,#dc2626); border-radius: 0 6px 6px 0;
                    transition: width .5s cubic-bezier(.34,1.56,.64,1); }
-.gauge-tick { position: absolute; left: 50%; top: -2px; width: 2px; height: 16px;
+.gauge-tick { position: absolute; left: 50%; top: -2px; width: 2px; height: 28px;
               background: var(--border2); z-index: 2; }
 .gauge-verdict { text-align: center; margin-top: 10px; }
 .verdict-badge { display: inline-block; padding: 5px 16px; border-radius: 20px;
