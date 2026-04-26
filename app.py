@@ -483,7 +483,7 @@ section[data-testid="stSidebar"] .stButton > button { background: rgba(255,255,2
 .gauge-label-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
 .gauge-label { font-family: var(--mono); font-size: 10px; font-weight: 700; }
 .gl-bull { color: var(--emerald); } .gl-bear { color: var(--crimson); } .gl-neut { color: var(--muted); }
-.gauge-track { position: relative; height: 24px; border-radius: 6px; background: var(--border2);
+.gauge-track { position: relative; height: 20px; border-radius: 6px; background: var(--border2);
                overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,.08); }
 .gauge-fill-bull { position: absolute; left: 0; top: 0; height: 100%;
                    background: linear-gradient(90deg,#047857,#10b981); border-radius: 6px 0 0 6px;
