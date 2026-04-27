@@ -385,7 +385,7 @@ section[data-testid="stSidebar"] > div:first-child {
 
 /* Clear gap between sidebar and main content */
 section[data-testid="stSidebar"] + section,
-.stMainBlockContainer { margin-left: 25px !important; }
+.stMainBlockContainer { margin-left: 35px !important; }
 [data-testid="stSidebarContent"] { padding: 0 12px 20px !important; }
 
 /* Set default sidebar text to light blue for readability */
