@@ -366,23 +366,86 @@ st.markdown("""
 header[data-testid="stHeader"] { background: transparent !important; z-index: 1100 !important; box-shadow: none !important; pointer-events: none; }
 header[data-testid="stHeader"] button, header[data-testid="stHeader"] [data-testid="collapsedControl"] { pointer-events: all !important; }
 .stDeployButton { display: none !important; }
+/* Remove ALL padding from main block — topbar handles its own spacing */
 .block-container { padding: 0 !important; max-width: 100% !important; padding-top: 3.5rem !important; }
+/* Eliminate the white gap Streamlit injects to the right of the sidebar */
+.stMain, [data-testid="stMain"] { padding-left: 0 !important; padding-right: 0 !important; }
+[data-testid="stMainBlockContainer"] { padding-left: 0 !important; padding-right: 0 !important; }
 .stApp { background: var(--bg) !important; font-family: var(--sans) !important; color: var(--text) !important; }
 
 /* ── SIDEBAR ── */
-section[data-testid="stSidebar"] { background: var(--royal-d) !important; box-shadow: 3px 0 20px rgba(15,23,42,.2) !important; }
-section[data-testid="stSidebar"] * { color: #e2e8f7 !important; }
-section[data-testid="stSidebar"] .stSelectbox > div > div,
-section[data-testid="stSidebar"] input {
-  background: rgba(255,255,255,.09) !important;
-  border: 1px solid rgba(255,255,255,.16) !important;
-  color: #e2e8f7 !important; border-radius: 8px !important;
+section[data-testid="stSidebar"] {
+  background: var(--royal-d) !important;
+  box-shadow: 3px 0 20px rgba(15,23,42,.2) !important;
 }
-section[data-testid="stSidebar"] label { color: rgba(226,232,247,.65) !important; font-size: 11px !important; font-family: var(--mono) !important; }
-section[data-testid="stSidebar"] .stButton > button { background: rgba(255,255,255,.1) !important; border: 1px solid rgba(255,255,255,.2) !important; color: #e2e8f7 !important; font-size: 11px !important; border-radius: 7px !important; }
-.sb-connect-btn .stButton > button { background: var(--royal) !important; border: none !important; color: white !important; font-weight: 700 !important; }
-.sb-danger .stButton > button    { background: var(--crimson) !important; border: none !important; color: white !important; font-weight: 700 !important; }
-.sb-success .stButton > button   { background: var(--emerald) !important; border: none !important; color: white !important; font-weight: 700 !important; }
+section[data-testid="stSidebar"] > div:first-child {
+  padding-top: 0 !important;
+}
+/* Remove the white gap Streamlit injects between sidebar and main content */
+section[data-testid="stSidebar"] + section,
+.stMainBlockContainer { margin-left: 0 !important; }
+[data-testid="stSidebarContent"] { padding: 0 12px 20px !important; }
+
+section[data-testid="stSidebar"] * { color: #e2e8f7 !important; }
+
+/* ── Sidebar inputs — bright enough to read ── */
+section[data-testid="stSidebar"] .stSelectbox > div > div {
+  background: rgba(255,255,255,.14) !important;
+  border: 1.5px solid rgba(255,255,255,.35) !important;
+  color: #ffffff !important;
+  border-radius: 8px !important;
+}
+section[data-testid="stSidebar"] input {
+  background: rgba(255,255,255,.14) !important;
+  border: 1.5px solid rgba(255,255,255,.35) !important;
+  color: #ffffff !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+section[data-testid="stSidebar"] input::placeholder { color: rgba(255,255,255,.45) !important; }
+section[data-testid="stSidebar"] input:focus {
+  border-color: #93c5fd !important;
+  background: rgba(255,255,255,.2) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(147,197,253,.3) !important;
+}
+/* Number input step arrows */
+section[data-testid="stSidebar"] .stNumberInput button {
+  background: rgba(255,255,255,.12) !important;
+  border-color: rgba(255,255,255,.2) !important;
+}
+
+/* ── Sidebar labels ── */
+section[data-testid="stSidebar"] label {
+  color: rgba(226,232,247,.75) !important;
+  font-size: 10px !important;
+  font-family: var(--mono) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+}
+/* ── Sidebar generic button ── */
+section[data-testid="stSidebar"] .stButton > button {
+  background: rgba(255,255,255,.1) !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  color: #e2e8f7 !important;
+  font-size: 11px !important;
+  border-radius: 7px !important;
+}
+section[data-testid="stSidebar"] .stButton > button:hover {
+  background: rgba(255,255,255,.2) !important;
+}
+.sb-connect-btn .stButton > button { background: #2563eb !important; border: none !important; color: white !important; font-weight: 700 !important; }
+.sb-danger .stButton > button      { background: var(--crimson) !important; border: none !important; color: white !important; font-weight: 700 !important; }
+.sb-success .stButton > button     { background: var(--emerald) !important; border: none !important; color: white !important; font-weight: 700 !important; }
+
+/* ── Safe-hours column gap ── */
+section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] {
+  gap: 12px !important;
+}
+section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] > div {
+  padding: 0 !important;
+}
 
 /* ── TOPBAR ── */
 .topbar {
@@ -648,11 +711,17 @@ with st.sidebar:
     if not st.session_state.dry_run:
         st.markdown('<div style="background:rgba(220,38,38,.2);border-radius:6px;padding:6px 10px;font-size:10px;color:#fca5a5;margin-top:4px;font-family:JetBrains Mono,monospace">⚠️ LIVE MODE — real orders will be placed</div>', unsafe_allow_html=True)
 
-    st.markdown('<div style="height:1px;background:rgba(255,255,255,.08);margin:8px 0"></div>', unsafe_allow_html=True)
-    st.markdown('<div style="padding:4px 4px 2px;font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.38);letter-spacing:2px;text-transform:uppercase">Safe Execution Hours (IST)</div>', unsafe_allow_html=True)
+    st.markdown('<div style="height:1px;background:rgba(255,255,255,.08);margin:10px 0"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="padding:6px 4px 4px;font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.55);letter-spacing:2px;text-transform:uppercase">Safe Execution Hours (IST)</div>', unsafe_allow_html=True)
+    st.markdown('<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">', unsafe_allow_html=True)
     c_hr1, c_hr2 = st.columns(2)
-    with c_hr1: st.session_state.safe_start = st.text_input("Start", value=st.session_state.safe_start)
-    with c_hr2: st.session_state.safe_end   = st.text_input("End",   value=st.session_state.safe_end)
+    with c_hr1:
+        st.markdown('<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.5);letter-spacing:1px;margin-bottom:4px">START</div>', unsafe_allow_html=True)
+        st.session_state.safe_start = st.text_input("safe_start_hidden", value=st.session_state.safe_start, label_visibility="collapsed", key="sf_st")
+    with c_hr2:
+        st.markdown('<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.5);letter-spacing:1px;margin-bottom:4px">END</div>', unsafe_allow_html=True)
+        st.session_state.safe_end   = st.text_input("safe_end_hidden",   value=st.session_state.safe_end,   label_visibility="collapsed", key="sf_en")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('<div style="height:1px;background:rgba(255,255,255,.08);margin:8px 0"></div>', unsafe_allow_html=True)
     st.markdown('<div style="padding:4px 4px 2px;font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.38);letter-spacing:2px;text-transform:uppercase">Auto Refresh</div>', unsafe_allow_html=True)
@@ -750,31 +819,54 @@ with tab_term:
         """, unsafe_allow_html=True)
         st.stop()
 
-    # ── Control row — mobile-safe compact flex layout ────────────────────
+    # ── Control row — polished pill button bar ───────────────────────────
     st.markdown("""
     <style>
-    /* Hide the default Streamlit column gap stretching on mobile */
-    div[data-testid="stHorizontalBlock"] { gap: 0 !important; }
-    /* Compact control row wrapper */
-    .ctrl-row { display: flex; align-items: center; gap: 8px; padding: 10px 20px 4px; flex-wrap: nowrap; }
-    .ctrl-row .stButton { flex-shrink: 0 !important; }
-    .ctrl-row .stButton > button { padding: 8px 14px !important; font-size: 11px !important;
-      white-space: nowrap !important; min-width: unset !important; width: auto !important; }
+    /* Scoped button styling for the control row only */
+    .ctrl-btn .stButton > button {
+      width: 100% !important;
+      padding: 11px 0 !important;
+      font-size: 12px !important;
+      font-family: 'JetBrains Mono', monospace !important;
+      font-weight: 700 !important;
+      letter-spacing: .6px !important;
+      border-radius: 8px !important;
+      border: none !important;
+      white-space: nowrap !important;
+      transition: filter .15s, transform .1s !important;
+      box-shadow: 0 2px 8px rgba(15,23,42,.12) !important;
+    }
+    .ctrl-btn .stButton > button:hover  { filter: brightness(1.12) !important; }
+    .ctrl-btn .stButton > button:active { transform: scale(.97) !important; }
+    .ctrl-ref .stButton > button { background: var(--royal)   !important; color: #fff !important; }
+    .ctrl-exe .stButton > button { background: var(--emerald) !important; color: #fff !important; }
+    .ctrl-clr .stButton > button {
+      background: transparent !important; color: var(--muted) !important;
+      border: 1.5px solid var(--border2) !important;
+      box-shadow: none !important;
+    }
+    .ctrl-clr .stButton > button:hover {
+      background: var(--crimson) !important; color: #fff !important;
+      border-color: var(--crimson) !important;
+    }
+    /* Give the button row proper padding without disturbing other columns */
+    div[data-testid="stHorizontalBlock"].btn-row-block { gap: 10px !important; padding: 14px 20px 6px !important; }
     </style>
     """, unsafe_allow_html=True)
-    st.markdown('<div class="ctrl-row">', unsafe_allow_html=True)
+
     col_r, col_e, col_c = st.columns([1, 1, 1])
     with col_r:
-        st.markdown('<div class="main-btn">', unsafe_allow_html=True)
-        do_ref = st.button("🔄 REFRESH", key="t_r", use_container_width=True)
+        st.markdown('<div class="ctrl-btn ctrl-ref">', unsafe_allow_html=True)
+        do_ref = st.button("🔄  REFRESH", key="t_r", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
     with col_e:
-        st.markdown('<div class="main-btn">', unsafe_allow_html=True)
-        run_btn = st.button("▶ EXECUTE", key="t_e", use_container_width=True)
+        st.markdown('<div class="ctrl-btn ctrl-exe">', unsafe_allow_html=True)
+        run_btn = st.button("▶  EXECUTE", key="t_e", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
     with col_c:
-        clr_log = st.button("🗑 CLEAR LOG", key="t_cl", use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('<div class="ctrl-btn ctrl-clr">', unsafe_allow_html=True)
+        clr_log = st.button("🗑  CLEAR LOG", key="t_cl", use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     if do_ref: st.rerun()
     if clr_log:
@@ -931,20 +1023,28 @@ with tab_term:
                 st.info("⚖ HOLD — no actionable signal. Waiting for strategy confluence.")
 
         # ── Live P&L update for open trades ─────────────────────────────
+        # CRITICAL: Only compare a trade's price against its OWN index's
+        # live price. Cross-index comparison (e.g. using NIFTY price to
+        # evaluate a SENSEX trade) causes immediate false SL/TGT triggers.
         if st.session_state.trade_log:
-            updated_log  = []
-            log_changed  = False
+            updated_log = []
+            log_changed = False
             for t in st.session_state.trade_log:
                 t = dict(t)
                 if t.get("status") == "OPEN":
-                    ep = sf(t.get("price", price))
-                    t["pnl"] = round(price - ep, 1) if t["signal"] == "BUY_CALL" else round(ep - price, 1)
-                    old = t["status"]
-                    if sf(t.get("sl"))     and t["signal"] == "BUY_CALL" and price <= sf(t["sl"]):   t["status"] = "CLOSED(SL)"
-                    elif sf(t.get("target")) and t["signal"] == "BUY_CALL" and price >= sf(t["target"]): t["status"] = "CLOSED(TGT)"
-                    elif sf(t.get("sl"))     and t["signal"] == "BUY_PUT"  and price >= sf(t["sl"]):   t["status"] = "CLOSED(SL)"
-                    elif sf(t.get("target")) and t["signal"] == "BUY_PUT"  and price <= sf(t["target"]): t["status"] = "CLOSED(TGT)"
-                    if t["status"] != old: log_changed = True
+                    trade_index = t.get("index", sym).upper()
+                    # Only update P&L using the price of the matching index.
+                    # Trades on other indices keep their last recorded pnl.
+                    if trade_index == sym.upper():
+                        ep = sf(t.get("price", price))
+                        t["pnl"] = round(price - ep, 1) if t["signal"] == "BUY_CALL" else round(ep - price, 1)
+                        old = t["status"]
+                        if sf(t.get("sl"))       and t["signal"] == "BUY_CALL" and price <= sf(t["sl"]):     t["status"] = "CLOSED(SL)"
+                        elif sf(t.get("target")) and t["signal"] == "BUY_CALL" and price >= sf(t["target"]): t["status"] = "CLOSED(TGT)"
+                        elif sf(t.get("sl"))     and t["signal"] == "BUY_PUT"  and price >= sf(t["sl"]):     t["status"] = "CLOSED(SL)"
+                        elif sf(t.get("target")) and t["signal"] == "BUY_PUT"  and price <= sf(t["target"]): t["status"] = "CLOSED(TGT)"
+                        if t["status"] != old: log_changed = True
+                    # else: trade belongs to a different index — leave pnl/status untouched
                 updated_log.append(t)
             st.session_state.trade_log = updated_log
             if log_changed: save_trade_log(st.session_state.trade_log)
