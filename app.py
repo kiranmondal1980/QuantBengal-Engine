@@ -926,23 +926,44 @@ with tab_term:
             else:
                 st.info("⚖ HOLD — no actionable signal. Waiting for strategy confluence.")
         # ── Live P&L update for open trades ─────────────────────────────
-        if st.session_state.trade_log:
-            updated_log  = []
-            log_changed  = False
+         if st.session_state.trade_log:
+            updated_log = []
+            log_changed = False
+            
             for t in st.session_state.trade_log:
-                t = dict(t)
-                if t.get("status") == "OPEN":
-                    ep = sf(t.get("price", price))
-                    t["pnl"] = round(price - ep, 1) if t["signal"] == "BUY_CALL" else round(ep - price, 1)
-                    old = t["status"]
-                    if sf(t.get("sl"))     and t["signal"] == "BUY_CALL" and price <= sf(t["sl"]):   t["status"] = "CLOSED(SL)"
-                    elif sf(t.get("target")) and t["signal"] == "BUY_CALL" and price >= sf(t["target"]): t["status"] = "CLOSED(TGT)"
-                    elif sf(t.get("sl"))     and t["signal"] == "BUY_PUT"  and price >= sf(t["sl"]):   t["status"] = "CLOSED(SL)"
-                    elif sf(t.get("target")) and t["signal"] == "BUY_PUT"  and price <= sf(t["target"]): t["status"] = "CLOSED(TGT)"
-                    if t["status"] != old: log_changed = True
+                t = dict(t) # Create a copy
+                
+                # CRITICAL CHECK: Only update if the trade's index matches the CURRENT dashboard index
+                # This prevents Nifty trades from closing when you switch to Sensex
+                if t.get("status") == "OPEN" and t.get("index") == sym:
+                    entry_p_ = sf(t.get("price", price))
+                    
+                    # Update P&L using the correct index price
+                    if t["signal"] == "BUY_CALL": 
+                        t["pnl"] = round(price - entry_p_, 1)
+                    else: 
+                        t["pnl"] = round(entry_p_ - price, 1)
+                    
+                    # Stop-Loss and Target Checks
+                    old_status = t["status"]
+                    sl_v  = sf(t.get("sl", 0))
+                    tgt_v = sf(t.get("target", 0))
+                    
+                    if t["signal"] == "BUY_CALL":
+                        if sl_v and price <= sl_v: t["status"] = "CLOSED(SL)"
+                        elif tgt_v and price >= tgt_v: t["status"] = "CLOSED(TGT)"
+                    elif t["signal"] == "BUY_PUT":
+                        if sl_v and price >= sl_v: t["status"] = "CLOSED(SL)"
+                        elif tgt_v and price <= tgt_v: t["status"] = "CLOSED(TGT)"
+                    
+                    if t["status"] != old_status: 
+                        log_changed = True
+                        
                 updated_log.append(t)
+            
             st.session_state.trade_log = updated_log
-            if log_changed: save_trade_log(st.session_state.trade_log)
+            if log_changed: 
+                save_trade_log(st.session_state.trade_log)
 
         # ── Professional Sentiment Gauge ─────────────────────────────────
         st.markdown('<div class="sec-hdr">MULTI-STRATEGY MARKET SENTIMENT</div>', unsafe_allow_html=True)
