@@ -373,58 +373,69 @@ header[data-testid="stHeader"] button, header[data-testid="stHeader"] [data-test
 [data-testid="stMainBlockContainer"] { padding-left: 0 !important; padding-right: 0 !important; }
 .stApp { background: var(--bg) !important; font-family: var(--sans) !important; color: var(--text) !important; }
 
-/* ── SIDEBAR ── */
+/* ── SIDEBAR: MASTER CONTROL PANEL ── */
 section[data-testid="stSidebar"] {
   background: var(--royal-d) !important;
   box-shadow: 3px 0 20px rgba(15,23,42,.2) !important;
 }
+
 section[data-testid="stSidebar"] > div:first-child {
   padding-top: 0 !important;
 }
-/* Remove the white gap Streamlit injects between sidebar and main content */
+
+/* Clear gap between sidebar and main content */
 section[data-testid="stSidebar"] + section,
 .stMainBlockContainer { margin-left: 0 !important; }
 [data-testid="stSidebarContent"] { padding: 0 12px 20px !important; }
 
+/* Set default sidebar text to light blue for readability */
 section[data-testid="stSidebar"] * { color: #e2e8f7 !important; }
 
-/* ── Sidebar inputs — bright enough to read ── */
-section[data-testid="stSidebar"] .stSelectbox > div > div {
-  background: rgba(255,255,255,.14) !important;
-  border: 1.5px solid rgba(255,255,255,.35) !important;
-  color: #ffffff !important;
-  border-radius: 8px !important;
-}
-section[data-testid="stSidebar"] input {
-  background: rgba(255,255,255,.14) !important;
-  border: 1.5px solid rgba(255,255,255,.35) !important;
-  color: #ffffff !important;
-  border-radius: 8px !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-}
-section[data-testid="stSidebar"] input::placeholder { color: rgba(255,255,255,.45) !important; }
-section[data-testid="stSidebar"] input:focus {
-  border-color: #93c5fd !important;
-  background: rgba(255,255,255,.2) !important;
-  outline: none !important;
-  box-shadow: 0 0 0 2px rgba(147,197,253,.3) !important;
-}
-/* Number input step arrows */
-section[data-testid="stSidebar"] .stNumberInput button {
-  background: rgba(255,255,255,.12) !important;
-  border-color: rgba(255,255,255,.2) !important;
+/* ── ULTIMATE INPUT VISIBILITY FIX (v7.2) ── */
+
+/* 1. Target Selectboxes, Text Inputs, and Number Inputs containers */
+section[data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"],
+section[data-testid="stSidebar"] .stTextInput div[data-testid="stSubheader"] + div,
+section[data-testid="stSidebar"] .stNumberInput div[data-testid="stNumberInputContainer"] {
+    background-color: #ffffff !important; /* Pure white background for the box */
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 8px !important;
 }
 
-/* ── Sidebar labels ── */
+/* 2. Target the actual TEXT inside those boxes */
+section[data-testid="stSidebar"] input, 
+section[data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] * {
+    color: #0d1b3e !important; /* Deep Corporate Navy text */
+    -webkit-text-fill-color: #0d1b3e !important; /* Required for Safari/Mobile */
+    font-size: 13px !important;
+    font-weight: 700 !important; /* Bold text for maximum clarity */
+}
+
+/* 3. Placeholder (hint) text color */
+section[data-testid="stSidebar"] input::placeholder {
+    color: #94a3b8 !important;
+    -webkit-text-fill-color: #94a3b8 !important;
+}
+
+/* 4. Number input (+ / -) button styling */
+section[data-testid="stSidebar"] .stNumberInput button {
+    background-color: #f1f5f9 !important;
+    color: #1e3a8a !important;
+    border: none !important;
+}
+
+/* ── SIDEBAR LABELS (TITLES) ── */
 section[data-testid="stSidebar"] label {
-  color: rgba(226,232,247,.75) !important;
-  font-size: 10px !important;
+  color: #ffffff !important; /* Bright white labels */
+  font-size: 11px !important;
   font-family: var(--mono) !important;
   text-transform: uppercase !important;
   letter-spacing: 1px !important;
+  font-weight: 600 !important;
+  margin-bottom: 5px !important;
 }
-/* ── Sidebar generic button ── */
+
+/* ── SIDEBAR BUTTONS ── */
 section[data-testid="stSidebar"] .stButton > button {
   background: rgba(255,255,255,.1) !important;
   border: 1px solid rgba(255,255,255,.22) !important;
@@ -432,9 +443,7 @@ section[data-testid="stSidebar"] .stButton > button {
   font-size: 11px !important;
   border-radius: 7px !important;
 }
-section[data-testid="stSidebar"] .stButton > button:hover {
-  background: rgba(255,255,255,.2) !important;
-}
+
 .sb-connect-btn .stButton > button { background: #2563eb !important; border: none !important; color: white !important; font-weight: 700 !important; }
 .sb-danger .stButton > button      { background: var(--crimson) !important; border: none !important; color: white !important; font-weight: 700 !important; }
 .sb-success .stButton > button     { background: var(--emerald) !important; border: none !important; color: white !important; font-weight: 700 !important; }
