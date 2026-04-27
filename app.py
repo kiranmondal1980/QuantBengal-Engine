@@ -590,7 +590,9 @@ section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] > div {
 .stTabs [data-baseweb="tab-panel"] { background: var(--bg) !important; padding: 0 !important; }
 
 .stAlert { border-radius: var(--radius) !important; font-family: var(--sans) !important; }
-.stSelectbox>div>div,.stTextInput>div>div>input,.stNumberInput>div>div>input { border-radius: 7px !important; border: 1px solid var(--border) !important; font-family: var(--mono) !important; font-size: 12px !important; }
+.stSelectbox>div>div,.stTextInput>div>div>input,.stNumberInput>div>div>input { border-radius: 7px !important; border: 1px solid var(--border) !important; font-family: var(--mono) !important; font-size: 12px !important;  color: #0d1b3e !important; 
+    -webkit-text-fill-color: #0d1b3e !important; 
+}
 .stSelectbox label,.stNumberInput label,.stTextInput label,.stSlider label,.stToggle label { font-family: var(--mono) !important; font-size: 10px !important; text-transform: uppercase !important; letter-spacing: 1px !important; color: var(--muted) !important; }
 div[data-testid="stMetric"] { background: var(--panel) !important; border: 1px solid var(--border) !important; border-radius: var(--radius) !important; padding: 16px !important; box-shadow: var(--shadow) !important; }
 .pad { padding: 0 24px 28px; } .padx { padding: 0 24px; } .gap12 { margin-top: 12px; }
