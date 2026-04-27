@@ -1,13 +1,9 @@
 """
-QuantBengal Pro — app.py  v7.0
-AUDIT COMPLETE EDITION:
-Module 1 — UI/UX: High-Contrast Corporate Light Theme (Royal Blue #1e3a8a / Crimson #dc2626)
-           Mobile-first flexible grid, professional Sentiment Gauge, swipable tables.
-Module 2 — Strategy Sync: All 6 strategies identical to strategy.py backend.
-           SENSEX BSE routing verified. ATM rounding unified (50 NIFTY / 100 BNF+SENSEX).
-Module 3 — Safety FAQ Tab: Full 7-point Trust & Safety section for beginners.
-Module 4 — Code Optimisation: Thread-safe JSON ledger, human-readable errors,
-           redundant code removed, structured log messages.
+QuantBengal Pro — app.py  v7.1
+PATCH: Updated F&O lot sizes per SEBI 2026 circular
+       NIFTY 65 | BANKNIFTY 30 | SENSEX 20
+       Mobile topbar overflow fixed (responsive breakpoints)
+       Control button row fixed (compact flex, no vertical stacking)
 """
 
 import streamlit as st
@@ -390,25 +386,29 @@ section[data-testid="stSidebar"] .stButton > button { background: rgba(255,255,2
 
 /* ── TOPBAR ── */
 .topbar {
-  background: var(--royal); padding: 0 24px 0 68px; height: 52px;
+  background: var(--royal); padding: 0 12px 0 68px; height: 52px;
   display: flex; align-items: center; justify-content: space-between;
   position: sticky; top: 0; z-index: 999;
   box-shadow: 0 2px 12px rgba(15,23,42,.3);
   border-bottom: 2px solid var(--royal-d);
+  overflow: hidden;
 }
-.tb-logo { font-family: var(--mono); font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -.2px; }
+.tb-logo { font-family: var(--mono); font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -.2px; white-space: nowrap; flex-shrink: 0; }
 .tb-logo em { color: #93c5fd; font-style: normal; }
 .tb-logo small { font-size: 9px; color: rgba(255,255,255,.38); letter-spacing: 3px; margin-left: 8px; font-weight: 400; }
-.tb-pills { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
-.pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px;
-        font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .5px; white-space: nowrap; }
+.tb-pills { display: flex; align-items: center; gap: 5px; flex-wrap: nowrap; overflow: hidden; min-width: 0; }
+.pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px;
+        font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: .3px; white-space: nowrap; flex-shrink: 0; }
 .pill-conn  { background: rgba(4,120,87,.3);  color: #6ee7b7; border: 1px solid rgba(110,231,183,.35); }
 .pill-disc  { background: rgba(220,38,38,.3); color: #fca5a5; border: 1px solid rgba(252,165,165,.35); }
 .pill-paper { background: rgba(180,83,9,.3);  color: #fcd34d; border: 1px solid rgba(252,211,77,.35); }
 .pill-live  { background: rgba(220,38,38,.4); color: #fca5a5; border: 1px solid rgba(252,165,165,.4); animation: live-pulse 2s infinite; }
 .pill-auto  { background: rgba(4,120,87,.35); color: #6ee7b7; border: 1px solid rgba(110,231,183,.4); }
+/* Strategy pill hidden on small screens to prevent overflow */
 .pill-strat { background: rgba(255,255,255,.09); color: rgba(255,255,255,.72); border: 1px solid rgba(255,255,255,.14); }
-.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+@media (max-width: 520px) { .pill-strat { display: none !important; } .tb-logo small { display: none; } }
+@media (max-width: 380px) { .pill-auto { display: none !important; } }
+.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 .dot-g { background: #34d399; animation: pulse 2s infinite; }
 .dot-r { background: #f87171; }
 @keyframes live-pulse { 0%,100%{opacity:1} 50%{opacity:.55} }
@@ -483,7 +483,7 @@ section[data-testid="stSidebar"] .stButton > button { background: rgba(255,255,2
 .gauge-label-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
 .gauge-label { font-family: var(--mono); font-size: 10px; font-weight: 700; }
 .gl-bull { color: var(--emerald); } .gl-bear { color: var(--crimson); } .gl-neut { color: var(--muted); }
-.gauge-track { position: relative; height: 20px; border-radius: 6px; background: var(--border2);
+.gauge-track { position: relative; height: 12px; border-radius: 6px; background: var(--border2);
                overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,.08); }
 .gauge-fill-bull { position: absolute; left: 0; top: 0; height: 100%;
                    background: linear-gradient(90deg,#047857,#10b981); border-radius: 6px 0 0 6px;
@@ -491,7 +491,7 @@ section[data-testid="stSidebar"] .stButton > button { background: rgba(255,255,2
 .gauge-fill-bear { position: absolute; right: 0; top: 0; height: 100%;
                    background: linear-gradient(90deg,#ef4444,#dc2626); border-radius: 0 6px 6px 0;
                    transition: width .5s cubic-bezier(.34,1.56,.64,1); }
-.gauge-tick { position: absolute; left: 50%; top: -2px; width: 2px; height: 28px;
+.gauge-tick { position: absolute; left: 50%; top: -2px; width: 2px; height: 16px;
               background: var(--border2); z-index: 2; }
 .gauge-verdict { text-align: center; margin-top: 10px; }
 .verdict-badge { display: inline-block; padding: 5px 16px; border-radius: 20px;
@@ -750,20 +750,31 @@ with tab_term:
         """, unsafe_allow_html=True)
         st.stop()
 
-    # ── Control row ─────────────────────────────────────────────────────────
-    c1, c2, c3, _ = st.columns([1, 1, 1, 6])
-    with c1:
-        st.markdown('<div style="padding:10px 0 0 24px"><div class="main-btn">', unsafe_allow_html=True)
-        do_ref = st.button("🔄 REFRESH", key="t_r")
-        st.markdown('</div></div>', unsafe_allow_html=True)
-    with c2:
-        st.markdown('<div style="padding:10px 0 0 0"><div class="main-btn">', unsafe_allow_html=True)
-        run_btn = st.button("▶ EXECUTE", key="t_e")
-        st.markdown('</div></div>', unsafe_allow_html=True)
-    with c3:
-        st.markdown('<div style="padding:10px 0 0 0">', unsafe_allow_html=True)
-        clr_log = st.button("🗑 CLEAR LOG", key="t_cl")
+    # ── Control row — mobile-safe compact flex layout ────────────────────
+    st.markdown("""
+    <style>
+    /* Hide the default Streamlit column gap stretching on mobile */
+    div[data-testid="stHorizontalBlock"] { gap: 0 !important; }
+    /* Compact control row wrapper */
+    .ctrl-row { display: flex; align-items: center; gap: 8px; padding: 10px 20px 4px; flex-wrap: nowrap; }
+    .ctrl-row .stButton { flex-shrink: 0 !important; }
+    .ctrl-row .stButton > button { padding: 8px 14px !important; font-size: 11px !important;
+      white-space: nowrap !important; min-width: unset !important; width: auto !important; }
+    </style>
+    """, unsafe_allow_html=True)
+    st.markdown('<div class="ctrl-row">', unsafe_allow_html=True)
+    col_r, col_e, col_c = st.columns([1, 1, 1])
+    with col_r:
+        st.markdown('<div class="main-btn">', unsafe_allow_html=True)
+        do_ref = st.button("🔄 REFRESH", key="t_r", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
+    with col_e:
+        st.markdown('<div class="main-btn">', unsafe_allow_html=True)
+        run_btn = st.button("▶ EXECUTE", key="t_e", use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    with col_c:
+        clr_log = st.button("🗑 CLEAR LOG", key="t_cl", use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     if do_ref: st.rerun()
     if clr_log:
@@ -854,19 +865,12 @@ with tab_term:
         else:
             st.markdown(f'<div class="sig-hold">⚖ HOLD — {reason}</div>', unsafe_allow_html=True)
 
-       # ── Execution logic ──────────────────────────────────────────────
+        # ── Execution logic ──────────────────────────────────────────────
         current_time_str = now_ist().strftime("%H:%M")
         is_safe_time     = st.session_state.safe_start <= current_time_str <= st.session_state.safe_end
-        
-        # 1. Base Lot Size Map (NSE/BSE 2024-25 REVISIONS)
-        qty_map          = {"NIFTY": 65, "SENSEX": 20, "BANKNIFTY": 30}
-        base_qty         = qty_map.get(sym.upper(), 15)
-        
-        # 2. Dynamic Lot Scaling based on Capital (Max 20% allocation per trade)
-        margin_per_lot   = 80000 if sym == "BANKNIFTY" else 100000  # Approx margin proxy
-        allowed_capital  = st.session_state.capital * 0.20
-        num_lots         = max(1, int(allowed_capital / margin_per_lot))
-        total_qty        = base_qty * num_lots
+        # Updated lot sizes per SEBI circular (effective 2026)
+        qty_map          = {"NIFTY": 65, "BANKNIFTY": 30, "SENSEX": 20}
+        qty              = qty_map.get(sym.upper(), 30)
 
         def _log_and_save(entry: dict):
             st.session_state.trade_log.append(entry)
@@ -879,13 +883,13 @@ with tab_term:
                 entry = {"time": now_ist().strftime("%d-%b %H:%M:%S"), "signal": sig, "index": sym,
                          "price": price, "sl": sl_p, "target": tgt_p}
                 if st.session_state.dry_run:
-                    st.success(f"🤖 AUTO PAPER: {sig} on {sym} ({num_lots} Lots) @ ₹{price:,.0f} | SL ₹{sl_p:,.0f} | TGT ₹{tgt_p:,.0f}")
+                    st.success(f"🤖 AUTO PAPER: {sig} on {sym} @ ₹{price:,.0f} | SL ₹{sl_p:,.0f} | TGT ₹{tgt_p:,.0f}")
                     entry.update({"mode": "PAPER-AUTO", "status": "OPEN", "pnl": 0})
                     _log_and_save(entry)
                     st.session_state.last_auto_signal = sig
                 else:
                     try:
-                        order = broker.place_order(signal=sig, symbol=sym, quantity=total_qty,
+                        order = broker.place_order(signal=sig, symbol=sym, quantity=qty,
                                                    price=price, spot_price=price,
                                                    expiry=st.session_state.expiry_date)
                         if order.get("status"):
@@ -907,12 +911,12 @@ with tab_term:
                 entry = {"time": now_ist().strftime("%d-%b %H:%M:%S"), "signal": sig, "index": sym,
                          "price": price, "sl": sl_p, "target": tgt_p}
                 if st.session_state.dry_run:
-                    st.success(f"🧪 PAPER: {sig} on {sym} ({num_lots} Lots) @ ₹{price:,.0f} | SL ₹{sl_p:,.0f} | TGT ₹{tgt_p:,.0f}")
+                    st.success(f"🧪 PAPER: {sig} on {sym} @ ₹{price:,.0f} | SL ₹{sl_p:,.0f} | TGT ₹{tgt_p:,.0f}")
                     entry.update({"mode": "PAPER", "status": "OPEN", "pnl": 0})
                     _log_and_save(entry)
                 else:
                     try:
-                        order = broker.place_order(signal=sig, symbol=sym, quantity=total_qty,
+                        order = broker.place_order(signal=sig, symbol=sym, quantity=qty,
                                                    price=price, spot_price=price,
                                                    expiry=st.session_state.expiry_date)
                         if order.get("status"):
@@ -925,45 +929,25 @@ with tab_term:
                         st.error(f"⚠️ Order error: {_human_order_error(str(e))}")
             else:
                 st.info("⚖ HOLD — no actionable signal. Waiting for strategy confluence.")
+
         # ── Live P&L update for open trades ─────────────────────────────
-         if st.session_state.trade_log:
-            updated_log = []
-            log_changed = False
-            
+        if st.session_state.trade_log:
+            updated_log  = []
+            log_changed  = False
             for t in st.session_state.trade_log:
-                t = dict(t) # Create a copy
-                
-                # CRITICAL CHECK: Only update if the trade's index matches the CURRENT dashboard index
-                # This prevents Nifty trades from closing when you switch to Sensex
-                if t.get("status") == "OPEN" and t.get("index") == sym:
-                    entry_p_ = sf(t.get("price", price))
-                    
-                    # Update P&L using the correct index price
-                    if t["signal"] == "BUY_CALL": 
-                        t["pnl"] = round(price - entry_p_, 1)
-                    else: 
-                        t["pnl"] = round(entry_p_ - price, 1)
-                    
-                    # Stop-Loss and Target Checks
-                    old_status = t["status"]
-                    sl_v  = sf(t.get("sl", 0))
-                    tgt_v = sf(t.get("target", 0))
-                    
-                    if t["signal"] == "BUY_CALL":
-                        if sl_v and price <= sl_v: t["status"] = "CLOSED(SL)"
-                        elif tgt_v and price >= tgt_v: t["status"] = "CLOSED(TGT)"
-                    elif t["signal"] == "BUY_PUT":
-                        if sl_v and price >= sl_v: t["status"] = "CLOSED(SL)"
-                        elif tgt_v and price <= tgt_v: t["status"] = "CLOSED(TGT)"
-                    
-                    if t["status"] != old_status: 
-                        log_changed = True
-                        
+                t = dict(t)
+                if t.get("status") == "OPEN":
+                    ep = sf(t.get("price", price))
+                    t["pnl"] = round(price - ep, 1) if t["signal"] == "BUY_CALL" else round(ep - price, 1)
+                    old = t["status"]
+                    if sf(t.get("sl"))     and t["signal"] == "BUY_CALL" and price <= sf(t["sl"]):   t["status"] = "CLOSED(SL)"
+                    elif sf(t.get("target")) and t["signal"] == "BUY_CALL" and price >= sf(t["target"]): t["status"] = "CLOSED(TGT)"
+                    elif sf(t.get("sl"))     and t["signal"] == "BUY_PUT"  and price >= sf(t["sl"]):   t["status"] = "CLOSED(SL)"
+                    elif sf(t.get("target")) and t["signal"] == "BUY_PUT"  and price <= sf(t["target"]): t["status"] = "CLOSED(TGT)"
+                    if t["status"] != old: log_changed = True
                 updated_log.append(t)
-            
             st.session_state.trade_log = updated_log
-            if log_changed: 
-                save_trade_log(st.session_state.trade_log)
+            if log_changed: save_trade_log(st.session_state.trade_log)
 
         # ── Professional Sentiment Gauge ─────────────────────────────────
         st.markdown('<div class="sec-hdr">MULTI-STRATEGY MARKET SENTIMENT</div>', unsafe_allow_html=True)
@@ -1285,7 +1269,7 @@ with tab_ic:
         ic_vix  = st.number_input("India VIX",      value=14.5,  step=0.1, key="ic_vx2")
     with ic2:
         ic_exp  = st.text_input("Expiry Code (DDMMM)", value="23DEC", key="ic_ex2")
-        ic_qty  = st.number_input("Quantity (units)",  value=15, step=15,  key="ic_qt2")
+        ic_qty  = st.number_input("Quantity (units)",  value=30, step=30,  key="ic_qt2")
     with ic3:
         ic_prem = st.number_input("Net Credit (₹/unit)", value=175, step=5,     key="ic_pr2")
         ic_cap  = st.number_input("Capital (₹)",         value=100000, step=10000, key="ic_cp2")
