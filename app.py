@@ -366,11 +366,11 @@ st.markdown("""
 header[data-testid="stHeader"] { background: transparent !important; z-index: 1100 !important; box-shadow: none !important; pointer-events: none; }
 header[data-testid="stHeader"] button, header[data-testid="stHeader"] [data-testid="collapsedControl"] { pointer-events: all !important; }
 .stDeployButton { display: none !important; }
-/* Remove ALL padding from main block — topbar handles its own spacing */
-.block-container { padding: 0 !important; max-width: 100% !important; padding-top: 3.5rem !important; }
-/* Eliminate the white gap Streamlit injects to the right of the sidebar */
-.stMain, [data-testid="stMain"] { padding-left: 0 !important; padding-right: 0 !important; }
-[data-testid="stMainBlockContainer"] { padding-left: 0 !important; padding-right: 0 !important; }
+
+/* ── UI FIX: INCREASE GAP BETWEEN SIDEBAR AND CONTENT ── */
+.block-container { padding: 1.5rem 3rem !important; max-width: 96% !important; padding-top: 3.5rem !important; }
+section[data-testid="stSidebar"] + section, .stMainBlockContainer { margin-left: 30px !important; }
+[data-testid="stSidebarContent"] { padding: 0 15px 20px !important; }
 .stApp { background: var(--bg) !important; font-family: var(--sans) !important; color: var(--text) !important; }
 
 /* ── SIDEBAR: MASTER CONTROL PANEL ── */
@@ -378,46 +378,31 @@ section[data-testid="stSidebar"] {
   background: var(--royal-d) !important;
   box-shadow: 3px 0 20px rgba(15,23,42,.2) !important;
 }
-
-section[data-testid="stSidebar"] > div:first-child {
-  padding-top: 0 !important;
-}
-
-/* Clear gap between sidebar and main content */
-section[data-testid="stSidebar"] + section,
-.stMainBlockContainer { margin-left: 25px !important; }
-[data-testid="stSidebarContent"] { padding: 0 12px 20px !important; }
-
-/* Set default sidebar text to light blue for readability */
+section[data-testid="stSidebar"] > div:first-child { padding-top: 0 !important; }
 section[data-testid="stSidebar"] * { color: #e2e8f7 !important; }
 
 /* ── ULTIMATE INPUT VISIBILITY FIX (v7.2) ── */
-
-/* 1. Target Selectboxes, Text Inputs, and Number Inputs containers */
 section[data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"],
 section[data-testid="stSidebar"] .stTextInput div[data-testid="stSubheader"] + div,
 section[data-testid="stSidebar"] .stNumberInput div[data-testid="stNumberInputContainer"] {
-    background-color: #ffffff !important; /* Pure white background for the box */
+    background-color: #ffffff !important; 
     border: 1.5px solid #cbd5e1 !important;
     border-radius: 8px !important;
 }
 
-/* 2. Target the actual TEXT inside those boxes */
 section[data-testid="stSidebar"] input, 
 section[data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] * {
-    color: #0d1b3e !important; /* Deep Corporate Navy text */
-    -webkit-text-fill-color: #0d1b3e !important; /* Required for Safari/Mobile */
+    color: #0d1b3e !important; 
+    -webkit-text-fill-color: #0d1b3e !important; 
     font-size: 13px !important;
-    font-weight: 700 !important; /* Bold text for maximum clarity */
+    font-weight: 700 !important; 
 }
 
-/* 3. Placeholder (hint) text color */
 section[data-testid="stSidebar"] input::placeholder {
     color: #94a3b8 !important;
     -webkit-text-fill-color: #94a3b8 !important;
 }
 
-/* 4. Number input (+ / -) button styling */
 section[data-testid="stSidebar"] .stNumberInput button {
     background-color: #f1f5f9 !important;
     color: #1e3a8a !important;
@@ -426,7 +411,7 @@ section[data-testid="stSidebar"] .stNumberInput button {
 
 /* ── SIDEBAR LABELS (TITLES) ── */
 section[data-testid="stSidebar"] label {
-  color: #ffffff !important; /* Bright white labels */
+  color: #ffffff !important; 
   font-size: 11px !important;
   font-family: var(--mono) !important;
   text-transform: uppercase !important;
@@ -443,18 +428,13 @@ section[data-testid="stSidebar"] .stButton > button {
   font-size: 11px !important;
   border-radius: 7px !important;
 }
-
 .sb-connect-btn .stButton > button { background: #2563eb !important; border: none !important; color: white !important; font-weight: 700 !important; }
 .sb-danger .stButton > button      { background: var(--crimson) !important; border: none !important; color: white !important; font-weight: 700 !important; }
 .sb-success .stButton > button     { background: var(--emerald) !important; border: none !important; color: white !important; font-weight: 700 !important; }
 
 /* ── Safe-hours column gap ── */
-section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] {
-  gap: 12px !important;
-}
-section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] > div {
-  padding: 0 !important;
-}
+section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] { gap: 12px !important; }
+section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] > div { padding: 0 !important; }
 
 /* ── TOPBAR ── */
 .topbar {
@@ -464,6 +444,7 @@ section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] > div {
   box-shadow: 0 2px 12px rgba(15,23,42,.3);
   border-bottom: 2px solid var(--royal-d);
   overflow: hidden;
+  margin: 10px 25px 20px 0px !important; /* Aligns topbar with the content */
 }
 .tb-logo { font-family: var(--mono); font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -.2px; white-space: nowrap; flex-shrink: 0; }
 .tb-logo em { color: #93c5fd; font-style: normal; }
@@ -476,7 +457,6 @@ section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] > div {
 .pill-paper { background: rgba(180,83,9,.3);  color: #fcd34d; border: 1px solid rgba(252,211,77,.35); }
 .pill-live  { background: rgba(220,38,38,.4); color: #fca5a5; border: 1px solid rgba(252,165,165,.4); animation: live-pulse 2s infinite; }
 .pill-auto  { background: rgba(4,120,87,.35); color: #6ee7b7; border: 1px solid rgba(110,231,183,.4); }
-/* Strategy pill hidden on small screens to prevent overflow */
 .pill-strat { background: rgba(255,255,255,.09); color: rgba(255,255,255,.72); border: 1px solid rgba(255,255,255,.14); }
 @media (max-width: 520px) { .pill-strat { display: none !important; } .tb-logo small { display: none; } }
 @media (max-width: 380px) { .pill-auto { display: none !important; } }
@@ -490,7 +470,7 @@ section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] > div {
              padding: 7px 28px; font-family: var(--mono); font-size: 11px; color: var(--royal);
              display: flex; align-items: center; gap: 8px; }
 
-/* ── METRIC CARDS — mobile-first flexible grid ── */
+/* ── METRIC CARDS ── */
 .metric-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; padding: 16px 20px; }
 .mcard { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
          padding: 14px 16px; position: relative; overflow: hidden; box-shadow: var(--shadow);
@@ -526,7 +506,7 @@ section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] > div {
 .sec-hdr { font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase;
            letter-spacing: 2.5px; padding: 16px 20px 10px; border-top: 1px solid var(--border); }
 
-/* ── TABLES — monospaced, swipable ── */
+/* ── TABLES ── */
 .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .qbt { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; white-space: nowrap; }
 .qbt thead tr { background: var(--panel2); }
@@ -547,7 +527,7 @@ section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] > div {
 .b-open { background: var(--amber-l);   color: var(--amber);   border: 1px solid rgba(180,83,9,.3); }
 .b-hold { background: rgba(100,116,139,.1); color: var(--muted); border: 1px solid rgba(100,116,139,.2); }
 
-/* ── PROFESSIONAL SENTIMENT GAUGE ── */
+/* ── THICK PROFESSIONAL SENTIMENT GAUGE ── */
 .gauge-wrap { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
               padding: 18px 20px; margin: 12px 0; box-shadow: var(--shadow); }
 .gauge-title { font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase;
@@ -555,16 +535,18 @@ section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] > div {
 .gauge-label-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
 .gauge-label { font-family: var(--mono); font-size: 10px; font-weight: 700; }
 .gl-bull { color: var(--emerald); } .gl-bear { color: var(--crimson); } .gl-neut { color: var(--muted); }
-.gauge-track { position: relative; height: 12px; border-radius: 6px; background: var(--border2);
-               overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,.08); }
+
+.gauge-track { position: relative; height: 24px; border-radius: 6px; background: var(--border2);
+               overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,.15); border: 1px solid rgba(0,0,0,0.05); }
 .gauge-fill-bull { position: absolute; left: 0; top: 0; height: 100%;
                    background: linear-gradient(90deg,#047857,#10b981); border-radius: 6px 0 0 6px;
-                   transition: width .5s cubic-bezier(.34,1.56,.64,1); }
+                   transition: width .6s cubic-bezier(.34,1.56,.64,1); }
 .gauge-fill-bear { position: absolute; right: 0; top: 0; height: 100%;
                    background: linear-gradient(90deg,#ef4444,#dc2626); border-radius: 0 6px 6px 0;
-                   transition: width .5s cubic-bezier(.34,1.56,.64,1); }
-.gauge-tick { position: absolute; left: 50%; top: -2px; width: 2px; height: 16px;
+                   transition: width .6s cubic-bezier(.34,1.56,.64,1); }
+.gauge-tick { position: absolute; left: 50%; top: -2px; width: 2px; height: 28px;
               background: var(--border2); z-index: 2; }
+              
 .gauge-verdict { text-align: center; margin-top: 10px; }
 .verdict-badge { display: inline-block; padding: 5px 16px; border-radius: 20px;
                  font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 1px; }
@@ -598,11 +580,8 @@ section[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] > div {
 .stTabs [aria-selected="true"] { color: var(--royal) !important; border-bottom-color: var(--royal) !important; }
 .stTabs [data-baseweb="tab-panel"] { background: var(--bg) !important; padding: 0 !important; }
 
+/* ── WIDGETS ── */
 .stAlert { border-radius: var(--radius) !important; font-family: var(--sans) !important; }
-.stSelectbox>div>div,.stTextInput>div>div>input,.stNumberInput>div>div>input { border-radius: 7px !important; border: 1px solid var(--border) !important; font-family: var(--mono) !important; font-size: 12px !important;  color: #0d1b3e !important; 
-    -webkit-text-fill-color: #0d1b3e !important; 
-}
-.stSelectbox label,.stNumberInput label,.stTextInput label,.stSlider label,.stToggle label { font-family: var(--mono) !important; font-size: 10px !important; text-transform: uppercase !important; letter-spacing: 1px !important; color: var(--muted) !important; }
 div[data-testid="stMetric"] { background: var(--panel) !important; border: 1px solid var(--border) !important; border-radius: var(--radius) !important; padding: 16px !important; box-shadow: var(--shadow) !important; }
 .pad { padding: 0 24px 28px; } .padx { padding: 0 24px; } .gap12 { margin-top: 12px; }
 
