@@ -3,12 +3,12 @@ name: QuantBengal Engine
 on:
   schedule:
     # Every 15 min Mon-Fri, 03:30-09:45 UTC = 09:00-15:15 IST
-    # FIX v5.0: was 3-10 (ran until 16:29 IST). Now 3-9 stops at 15:15 IST.
+    # Safe-hours gate in main.py further restricts to 10:30-14:30 IST
     - cron: '*/15 3-9 * * 1-5'
   workflow_dispatch:
     inputs:
       strategy:
-        description: 'Strategy to run'
+        description: 'Strategy category to run'
         required: true
         default: 'MOMENTUM'
         type: choice
@@ -16,6 +16,27 @@ on:
           - MOMENTUM
           - IRON_CONDOR
           - BREAKOUT
+      strategy_name:
+        description: 'Specific algorithm (e.g. SuperTrend + RSI)'
+        required: true
+        default: 'SuperTrend + RSI'
+        type: choice
+        options:
+          - 'SuperTrend + RSI'
+          - 'MACD + EMA Confluence'
+          - 'Stochastic + BB Mean Reversion'
+          - 'Triple EMA + Volume Trend'
+          - 'Momentum Pulse (EMA+RSI)'
+          - 'Bollinger Squeeze Breakout'
+      index_choice:
+        description: 'Index to trade'
+        required: true
+        default: 'BANKNIFTY'
+        type: choice
+        options:
+          - NIFTY
+          - BANKNIFTY
+          - SENSEX
       dry_run:
         description: 'Paper trade only (true = no real orders placed)'
         required: true
@@ -24,6 +45,10 @@ on:
         options:
           - 'true'
           - 'false'
+      expiry_date:
+        description: 'Options expiry (DDMMM format e.g. 30APR)'
+        required: true
+        default: '30APR'
 
 jobs:
   run-algo:
@@ -53,16 +78,25 @@ jobs:
 
       - name: Run QuantBengal Engine
         env:
+          # ── Secrets (from GitHub Secrets) ───────────────────────────────
           BROKER_API_KEY:   ${{ secrets.BROKER_API_KEY }}
           CLIENT_ID:        ${{ secrets.CLIENT_ID }}
           PASSWORD:         ${{ secrets.PASSWORD }}
           TOTP_TOKEN:       ${{ secrets.TOTP_TOKEN }}
-          STRATEGY:         ${{ github.event.inputs.strategy || 'MOMENTUM' }}
-          DRY_RUN:          ${{ github.event.inputs.dry_run || 'true' }}
-          CAPITAL:          ${{ vars.CAPITAL || '200000' }}
-          VIX:              ${{ vars.VIX || '15.0' }}
-          IC_EXPIRY:        ${{ vars.IC_EXPIRY || '23DEC' }}
-          BANKNIFTY_SPOT:   ${{ vars.BANKNIFTY_SPOT || '0' }}
+
+          # ── Strategy Config (workflow_dispatch inputs or repo Variables) ─
+          STRATEGY:         ${{ github.event.inputs.strategy      || vars.STRATEGY      || 'MOMENTUM' }}
+          STRATEGY_NAME:    ${{ github.event.inputs.strategy_name || vars.STRATEGY_NAME || 'SuperTrend + RSI' }}
+          INDEX_CHOICE:     ${{ github.event.inputs.index_choice  || vars.INDEX_CHOICE  || 'BANKNIFTY' }}
+          EXPIRY_DATE:      ${{ github.event.inputs.expiry_date   || vars.EXPIRY_DATE   || '30APR' }}
+          DRY_RUN:          ${{ github.event.inputs.dry_run       || vars.DRY_RUN       || 'true' }}
+
+          # ── Risk & Capital Config (from repo Variables) ──────────────────
+          CAPITAL:          ${{ vars.CAPITAL          || '200000' }}
+          VIX:              ${{ vars.VIX              || '15.0' }}
+          IC_EXPIRY:        ${{ vars.IC_EXPIRY        || '30APR' }}
+          BANKNIFTY_SPOT:   ${{ vars.BANKNIFTY_SPOT   || '0' }}
+
         run: python main.py
 
       - name: Upload engine log
