@@ -772,7 +772,7 @@ with st.sidebar:
     st.markdown('<div style="height:1px;background:rgba(255,255,255,.08);margin:8px 0"></div>', unsafe_allow_html=True)
     st.markdown('<div style="padding:4px 4px 2px;font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.38);letter-spacing:2px;text-transform:uppercase">Risk Controls</div>', unsafe_allow_html=True)
     st.session_state.vix_limit      = st.slider("VIX Threshold",        10.0, 30.0, st.session_state.vix_limit,      0.5,  key="vx_s")
-    st.session_state.daily_loss_pct = st.slider("Daily Loss Limit (%)", 0.5,  5.0,  st.session_state.daily_loss_pct, 0.25, key="dl_s")
+    st.session_state.daily_loss_pct = st.slider("Daily Loss Limit (%)", 0.5, 20.0, float(st.session_state.daily_loss_pct), 0.25, key="dl_s")
 
     st.markdown('<div style="height:1px;background:rgba(255,255,255,.08);margin:8px 0"></div>', unsafe_allow_html=True)
     st.markdown('<div class="sb-danger">', unsafe_allow_html=True)
@@ -1175,6 +1175,44 @@ with tab_term:
             st.markdown(f'<div class="table-responsive"><table class="qbt"><thead><tr>{th_}</tr></thead><tbody>{rows_t}</tbody></table></div>', unsafe_allow_html=True)
 
         st.markdown('</div>', unsafe_allow_html=True)
+           # ── Live P&L and Trailing SL Update ─────────────────────────────
+        if st.session_state.trade_log:
+            updated_log = []
+            log_changed = False
+            for t in st.session_state.trade_log:
+                t = dict(t)
+                if t.get("status") == "OPEN":
+                    ep = sf(t.get("price", price))
+                    current_pnl = price - ep if t["signal"] == "BUY_CALL" else ep - price
+                    t["pnl"] = round(current_pnl, 1)
+                    
+                    sl_v  = sf(t.get("sl", 0))
+                    tgt_v = sf(t.get("target", 0))
+
+                    # --- NEW: TRAILING LOGIC (Locking Profit) ---
+                    # যদি প্রফিট টার্গেটের ৫০% ছাড়িয়ে যায়, তবে SL এন্ট্রি প্রাইসে নিয়ে আসো (Risk-Free Trade)
+                    profit_threshold = (tgt_v - ep) * 0.5 if t["signal"] == "BUY_CALL" else (ep - tgt_v) * 0.5
+                    
+                    if abs(current_pnl) >= abs(profit_threshold):
+                        if t["signal"] == "BUY_CALL" and sl_v < ep:
+                            t["sl"] = ep # SL moved to Breakeven
+                            log_changed = True
+                        elif t["signal"] == "BUY_PUT" and sl_v > ep:
+                            t["sl"] = ep # SL moved to Breakeven
+                    # ---------------------------------------------
+
+                    old_status = t["status"]
+                    if t["signal"] == "BUY_CALL":
+                        if sl_v and price <= sl_v:   t["status"] = "CLOSED(SL)"
+                        elif tgt_v and price >= tgt_v: t["status"] = "CLOSED(TGT)"
+                    elif t["signal"] == "BUY_PUT":
+                        if sl_v and price >= sl_v:   t["status"] = "CLOSED(SL)"
+                        elif tgt_v and price <= tgt_v: t["status"] = "CLOSED(TGT)"
+                    
+                    if t["status"] != old_status: log_changed = True
+                updated_log.append(t)
+            st.session_state.trade_log = updated_log
+            if log_changed: save_trade_log(st.session_state.trade_log)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
