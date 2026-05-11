@@ -80,32 +80,35 @@ jobs:
 
       - name: Run QuantBengal Engine
         env:
-          # ── Secrets (Security) ──────────────────────────────────────────
+          # ── Secrets (Security)
           BROKER_API_KEY:   ${{ secrets.BROKER_API_KEY }}
           CLIENT_ID:        ${{ secrets.CLIENT_ID }}
           PASSWORD:         ${{ secrets.PASSWORD }}
           TOTP_TOKEN:       ${{ secrets.TOTP_TOKEN }}
 
-          # ── Strategy Config (Inputs or Vars) ────────────────────────────
-          STRATEGY:         ${{ github.event.inputs.strategy      || vars.STRATEGY      || 'MOMENTUM' }}
-          STRATEGY_NAME:    ${{ github.event.inputs.strategy_name || vars.STRATEGY_NAME || 'SuperTrend + RSI' }}
-          INDEX_CHOICE:     ${{ github.event.inputs.index_choice  || vars.INDEX_CHOICE  || 'NIFTY' }}
-          EXPIRY_DATE:      ${{ github.event.inputs.expiry_date   || vars.EXPIRY_DATE   || '30APR' }}
-          DRY_RUN:          ${{ github.event.inputs.dry_run       || vars.DRY_RUN       || 'true' }}
+          # ── Strategy Config
+          STRATEGY:         ${{ github.event.inputs.strategy      || 'MOMENTUM' }}
+          STRATEGY_NAME:    ${{ github.event.inputs.strategy_name || 'SuperTrend + RSI' }}
+          INDEX_CHOICE:     ${{ github.event.inputs.index_choice  || 'NIFTY' }}
+          EXPIRY_DATE:      ${{ github.event.inputs.expiry_date   || '30APR' }}
+          DRY_RUN:          ${{ github.event.inputs.dry_run       || 'true' }}
 
-          # ── Risk & Capital Config (Variables) ───────────────────────────
-          CAPITAL:          ${{ vars.CAPITAL          || '20000' }}
-          VIX:              ${{ vars.VIX              || '15.0' }}
-          IC_EXPIRY:        ${{ vars.IC_EXPIRY        || '30APR' }}
-          BANKNIFTY_SPOT:   ${{ vars.BANKNIFTY_SPOT   || '0' }}
+          # ── Risk & Capital Config
+          CAPITAL:          ${{ vars.CAPITAL        || '20000' }}
+          VIX:              ${{ vars.VIX            || '15.0' }}
+          IC_EXPIRY:        ${{ vars.IC_EXPIRY      || '30APR' }}
+          BANKNIFTY_SPOT:   ${{ vars.BANKNIFTY_SPOT || '0' }}
 
         run: python main.py
+
+      - name: Create dummy log if missing
+        run: touch engine.log
 
       - name: Upload engine log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: engine-log-${{ github.run_number }}-${{ github.run_attempt }}
+          name: engine-log-${{ github.run_number }}
           path: |
             *.log
             trade_ledger.csv
