@@ -87,10 +87,10 @@ jobs:
           TOTP_TOKEN:       ${{ secrets.TOTP_TOKEN }}
 
           # ── Strategy Config
-          STRATEGY:         ${{ github.event.inputs.strategy      || 'MOMENTUM' }}
-          STRATEGY_NAME:    ${{ github.event.inputs.strategy_name || 'SuperTrend + RSI' }}
-          INDEX_CHOICE:     ${{ github.event.inputs.index_choice  || 'NIFTY' }}
-          EXPIRY_DATE:      ${{ github.event.inputs.expiry_date   || '30APR' }}
+          STRATEGY:         ${{ github.event.inputs.strategy      || vars.STRATEGY      || 'MOMENTUM' }}
+          STRATEGY_NAME:    ${{ github.event.inputs.strategy_name || vars.STRATEGY_NAME || 'SuperTrend + RSI' }}
+          INDEX_CHOICE:     ${{ github.event.inputs.index_choice  || vars.INDEX_CHOICE  || 'BANKNIFTY' }}
+          EXPIRY_DATE:      ${{ github.event.inputs.expiry_date   || vars.EXPIRY_DATE   || '30APR' }}
           DRY_RUN:          ${{ github.event.inputs.dry_run       || 'true' }}
 
           # ── Risk & Capital Config
