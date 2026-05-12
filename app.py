@@ -667,7 +667,7 @@ div[data-testid="stMetric"] { background: var(--panel) !important; border: 1px s
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  SIDEBAR
+#  SIDEBAR MASTER CONTROL PANEL
 # ═══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
     st.markdown("""
@@ -681,6 +681,7 @@ with st.sidebar:
     <div style="height:1px;background:rgba(255,255,255,.08);margin:12px 0"></div>
     """, unsafe_allow_html=True)
 
+    # ── 1. CONNECTION MANAGEMENT ──
     if st.session_state.connected:
         st.markdown('<div style="margin:0 4px 10px;background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);border-radius:8px;padding:7px 12px;font-family:JetBrains Mono,monospace;font-size:10px;color:#34d399;text-align:center">● ANGEL ONE CONNECTED</div>', unsafe_allow_html=True)
         with st.expander("🔌 Manage Connection", expanded=False):
@@ -701,138 +702,107 @@ with st.sidebar:
             st.session_state.totp_secret = st.text_input("TOTP Secret", value=st.session_state.totp_secret, type="password", key="s_totp")
             st.markdown('<div class="sb-connect-btn">', unsafe_allow_html=True)
             if st.button("⚡ CONNECT TO ANGEL ONE", use_container_width=True, key="btn_conn"):
-                if not all([st.session_state.api_key, st.session_state.client_id,
-                            st.session_state.password, st.session_state.totp_secret]):
-                    st.error("All 4 credential fields are required.")
+                if not all([st.session_state.api_key, st.session_state.client_id, st.session_state.password, st.session_state.totp_secret]):
+                    st.error("All 4 fields required.")
                 elif not BROKER_OK:
                     st.error("broker_api.py not found in the app folder.")
                 else:
-                    for k, env in [("api_key","BROKER_API_KEY"),("client_id","CLIENT_ID"),
-                                   ("password","PASSWORD"),("totp_secret","TOTP_TOKEN")]:
+                    for k, env in [("api_key","BROKER_API_KEY"),("client_id","CLIENT_ID"), ("password","PASSWORD"),("totp_secret","TOTP_TOKEN")]:
                         os.environ[env] = st.session_state[k]
-                    with st.spinner("Authenticating with Angel One…"):
+                    with st.spinner("Authenticating..."):
                         try:
                             b = IndianBrokerAPI()
                             if b.connected:
-                                st.session_state.broker    = b
-                                st.session_state.connected = True
-                                st.success("✅ Connected!")
-                                time.sleep(0.4)
-                                st.rerun()
+                                st.session_state.broker = b; st.session_state.connected = True
+                                st.success("✅ Connected!"); time.sleep(0.4); st.rerun()
                             else:
-                                st.error(
-                                    "❌ Authentication failed.\n"
-                                    "• TOTP Secret = the 32-character BASE32 key, NOT the 6-digit OTP\n"
-                                    "• Double-check Client ID and Trading PIN"
-                                )
+                                st.error("❌ Auth failed. Check Secret and Client ID.")
                         except Exception as ex:
-                            st.error(f"Connection error: {_human_order_error(str(ex))}")
+                            st.error(f"Connection error: {ex}")
             st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('<div style="height:1px;background:rgba(255,255,255,.08);margin:8px 0"></div>', unsafe_allow_html=True)
 
+    # ── 2. MARKET & STRATEGY SELECTION ──
     st.markdown('<div style="padding:4px 4px 2px;font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.38);letter-spacing:2px;text-transform:uppercase">Market & Strategy</div>', unsafe_allow_html=True)
-    # ── MARKET & STRATEGY SELECTION ──
-    st.markdown('<div style="padding:4px 4px 2px;font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.4);letter-spacing:2px;text-transform:uppercase">Market & Strategy</div>', unsafe_allow_html=True)
     
-    # 1. Define all available markets
-    with st.sidebar:
-   # 1. সব কটি ইনডেক্স এবং কমোডিটির লিস্ট
     index_list = ["NIFTY", "BANKNIFTY", "SENSEX", "CRUDEOIL", "NATURALGAS"]
-
-    # 2. বর্তমানে যেটি সিলেক্ট করা আছে সেটি খুঁজে বের করা (যাতে ক্রাশ না করে)
     try:
         current_idx = index_list.index(st.session_state.index_choice)
     except (ValueError, KeyError):
         current_idx = 0
 
-    # 3. একটি মাত্র সিলেক্ট বক্স (এখানেই সব কাজ হয়ে যাবে)
-    st.session_state.index_choice = st.selectbox(
-        "Trading Index / Commodity", 
-        index_list, 
-        index=current_idx
-    )
-
-    # 4. অপশন এক্সপায়ারি ইনপুট
-    st.session_state.expiry_date = st.text_input("Options Expiry", value="18MAY26")
-        "Trading Index / Commodity", 
-        index_list, 
-        index=current_idx
-    )
+    st.session_state.index_choice = st.selectbox("Trading Index / Commodity", index_list, index=current_idx)
     st.session_state.expiry_date = st.text_input("Options Expiry (e.g. 25APR)", value=st.session_state.expiry_date)
 
     STRATS = ["SuperTrend + RSI","MACD + EMA Confluence","Stochastic + BB Mean Reversion",
               "Triple EMA + Volume Trend","Momentum Pulse (EMA+RSI)","Bollinger Squeeze Breakout","Iron Condor (BankNifty)"]
     idx = STRATS.index(st.session_state.strategy) if st.session_state.strategy in STRATS else 0
     st.session_state.strategy = st.selectbox("Strategy", STRATS, index=idx, key="sel_s")
-    st.session_state.capital  = float(st.number_input("Capital (₹)", min_value=20000, max_value=5000000,
-        value=int(st.session_state.capital), step=10000, key="cap_n"))
+    
+    st.session_state.capital  = float(st.number_input("Capital (₹)", min_value=20000, value=int(st.session_state.capital), step=5000, key="cap_n"))
     st.session_state.dry_run  = st.toggle("🧪 Dry Run (Paper Trade)", value=st.session_state.dry_run, key="dry_t")
+    
     if not st.session_state.dry_run:
-        st.markdown('<div style="background:rgba(220,38,38,.2);border-radius:6px;padding:6px 10px;font-size:10px;color:#fca5a5;margin-top:4px;font-family:JetBrains Mono,monospace">⚠️ LIVE MODE — real orders will be placed</div>', unsafe_allow_html=True)
+        st.markdown('<div style="background:rgba(220,38,38,.2);border-radius:6px;padding:6px 10px;font-size:10px;color:#fca5a5;margin-top:4px;font-family:JetBrains Mono,monospace">⚠️ LIVE MODE ACTIVE</div>', unsafe_allow_html=True)
 
     st.markdown('<div style="height:1px;background:rgba(255,255,255,.08);margin:10px 0"></div>', unsafe_allow_html=True)
+
+    # ── 3. SAFE EXECUTION HOURS ──
     st.markdown('<div style="padding:6px 4px 4px;font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.55);letter-spacing:2px;text-transform:uppercase">Safe Execution Hours (IST)</div>', unsafe_allow_html=True)
-    st.markdown('<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">', unsafe_allow_html=True)
     c_hr1, c_hr2 = st.columns(2)
     with c_hr1:
-        st.markdown('<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.5);letter-spacing:1px;margin-bottom:4px">START</div>', unsafe_allow_html=True)
-        st.session_state.safe_start = st.text_input("safe_start_hidden", value=st.session_state.safe_start, label_visibility="collapsed", key="sf_st")
+        st.session_state.safe_start = st.text_input("START", value=st.session_state.safe_start, key="sf_st")
     with c_hr2:
-        st.markdown('<div style="font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.5);letter-spacing:1px;margin-bottom:4px">END</div>', unsafe_allow_html=True)
-        st.session_state.safe_end   = st.text_input("safe_end_hidden",   value=st.session_state.safe_end,   label_visibility="collapsed", key="sf_en")
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.session_state.safe_end   = st.text_input("END",   value=st.session_state.safe_end,   key="sf_en")
 
     st.markdown('<div style="height:1px;background:rgba(255,255,255,.08);margin:8px 0"></div>', unsafe_allow_html=True)
-    st.markdown('<div style="padding:4px 4px 2px;font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.38);letter-spacing:2px;text-transform:uppercase">Auto Refresh</div>', unsafe_allow_html=True)
+
+    # ── 4. AUTO REFRESH ──
     st.session_state.auto_refresh = st.toggle("⏱ Auto Refresh", value=st.session_state.auto_refresh, key="ar_t")
     if st.session_state.auto_refresh:
         st.session_state.refresh_interval = st.slider("Interval (s)", 15, 120, 30, 5, key="ar_s")
 
     st.markdown('<div style="height:1px;background:rgba(255,255,255,.08);margin:8px 0"></div>', unsafe_allow_html=True)
-    st.markdown('<div style="padding:4px 4px 4px;font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.38);letter-spacing:2px;text-transform:uppercase">Auto Trading</div>', unsafe_allow_html=True)
+
+    # ── 5. AUTO TRADING ENGINE ──
     if st.session_state.engine_on:
         st.markdown('<div style="background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.3);border-radius:8px;padding:7px;text-align:center;font-family:JetBrains Mono,monospace;font-size:10px;color:#34d399;margin-bottom:6px">🤖 ENGINE RUNNING</div>', unsafe_allow_html=True)
-        st.markdown('<div class="sb-danger">', unsafe_allow_html=True)
         if st.button("⏹ STOP AUTO-TRADE", use_container_width=True, key="stop_a"):
             st.session_state.engine_on = False; st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
     else:
-        st.markdown('<div class="sb-success">', unsafe_allow_html=True)
         if st.button("▶ START AUTO-TRADE", use_container_width=True, key="start_a"):
             if not st.session_state.connected: st.error("Connect first.")
             else: st.session_state.engine_on = True; st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('<div style="height:1px;background:rgba(255,255,255,.08);margin:8px 0"></div>', unsafe_allow_html=True)
+
+    # ── 6. RISK CONTROLS ──
     st.markdown('<div style="padding:4px 4px 2px;font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.38);letter-spacing:2px;text-transform:uppercase">Risk Controls</div>', unsafe_allow_html=True)
     st.session_state.vix_limit      = st.slider("VIX Threshold",        10.0, 30.0, st.session_state.vix_limit,      0.5,  key="vx_s")
     st.session_state.daily_loss_pct = st.slider("Daily Loss Limit (%)", 0.5, 20.0, float(st.session_state.daily_loss_pct), 0.25, key="dl_s")
 
     st.markdown('<div style="height:1px;background:rgba(255,255,255,.08);margin:8px 0"></div>', unsafe_allow_html=True)
+    
+    # ── 7. EMERGENCY SOS ──
     st.markdown('<div class="sb-danger">', unsafe_allow_html=True)
     if st.button("🛑 EMERGENCY SQUARE OFF", use_container_width=True, key="sos"):
         _b = st.session_state.get("broker")
-        if _b and getattr(_b, "connected", False):
-            with st.spinner("Closing ALL positions at market price…"):
+        if _b and _b.connected:
+            with st.spinner("Closing ALL positions..."):
                 _results = _b.square_off_all()
-            failed = [r for r in _results if not r.get("status")]
-            if failed:
-                for f in failed:
-                    st.warning(f"⚠️ {f['symbol']}: {f.get('error','Unknown')}")
-            st.warning(f"✅ Squared off {len(_results) - len(failed)} position(s)")
+            st.warning(f"✅ Squared off {len(_results)} positions")
             st.session_state.engine_on = False
-        else:
-            st.error("Not connected to Angel One.")
+        else: st.error("Not connected.")
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # ── 8. SYSTEM INFO CLOCK ──
     n = now_ist(); mo = market_open()
     st.markdown(f"""
     <div style="padding:12px 4px 4px;font-family:JetBrains Mono,monospace;font-size:10px;color:rgba(255,255,255,.38);line-height:2">
       <div>🕐 {n.strftime('%d %b  %H:%M:%S IST')}</div>
       <div>Market: {'<span style="color:#34d399">● OPEN</span>' if mo else '<span style="color:#f87171">● CLOSED</span>'}</div>
       <div>Mode: {'<span style="color:#fcd34d">PAPER</span>' if st.session_state.dry_run else '<span style="color:#fca5a5;font-weight:700">⚡ LIVE</span>'}</div>
-      <div>Engine: {'<span style="color:#34d399;font-weight:700">RUNNING 🤖</span>' if st.session_state.engine_on else '<span style="color:rgba(255,255,255,.28)">IDLE</span>'}</div>
     </div>
     """, unsafe_allow_html=True)
 
