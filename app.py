@@ -722,7 +722,7 @@ with st.sidebar:
     st.markdown('<div style="height:1px;background:rgba(255,255,255,.08);margin:8px 0"></div>', unsafe_allow_html=True)
 
     st.markdown('<div style="padding:4px 4px 2px;font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.38);letter-spacing:2px;text-transform:uppercase">Market & Strategy</div>', unsafe_allow_html=True)
-    st.session_state.index_choice = st.selectbox("Trading Index", ["NIFTY", "BANKNIFTY", "SENSEX"],
+    st.session_state.index_choice = st.selectbox("Trading Index", ["NIFTY", "BANKNIFTY", "SENSEX", "CRUDEOIL", "NATURALGAS"],
         index=["NIFTY","BANKNIFTY","SENSEX"].index(st.session_state.index_choice))
     st.session_state.expiry_date = st.text_input("Options Expiry (e.g. 25APR)", value=st.session_state.expiry_date)
 
@@ -986,7 +986,13 @@ with tab_term:
         current_time_str = now_ist().strftime("%H:%M")
         is_safe_time     = st.session_state.safe_start <= current_time_str <= st.session_state.safe_end
         # Updated lot sizes per SEBI circular (effective 2026)
-        qty_map          = {"NIFTY": 65, "BANKNIFTY": 30, "SENSEX": 20}
+        qty_map = {
+    "NIFTY": 65, 
+    "BANKNIFTY": 30, 
+    "SENSEX": 20,
+    "CRUDEOIL": 1,      # MCX Option 1 lot = 100 units (but coded as 1 for simplicity in some brokers)
+    "NATURALGAS": 1     # MCX Option 1 lot = 1250 units
+}
         qty              = qty_map.get(sym.upper(), 30)
 
         def _log_and_save(entry: dict):
