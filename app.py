@@ -723,7 +723,20 @@ with st.sidebar:
 
     st.markdown('<div style="padding:4px 4px 2px;font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.38);letter-spacing:2px;text-transform:uppercase">Market & Strategy</div>', unsafe_allow_html=True)
     st.session_state.index_choice = st.selectbox("Trading Index", ["NIFTY", "BANKNIFTY", "SENSEX", "CRUDEOIL", "NATURALGAS"],
-        index=["NIFTY","BANKNIFTY","SENSEX"].index(st.session_state.index_choice))
+        # এই লিস্টে আপনার ড্রপডাউনের সব কটি অপশন থাকতে হবে
+index_list = ["NIFTY", "BANKNIFTY", "SENSEX", "CRUDEOIL", "NATURALGAS"]
+
+# ইনডেক্স খুঁজে বের করার নিরাপদ পদ্ধতি
+if st.session_state.index_choice in index_list:
+    default_idx = index_list.index(st.session_state.index_choice)
+else:
+    default_idx = 0 # যদি খুঁজে না পায় তবে ডিফল্ট হিসেবে প্রথমটি (NIFTY) দেখাবে
+
+st.session_state.index_choice = st.selectbox(
+    "Trading Index / Commodity", 
+    index_list,
+    index=default_idx
+)
     st.session_state.expiry_date = st.text_input("Options Expiry (e.g. 25APR)", value=st.session_state.expiry_date)
 
     STRATS = ["SuperTrend + RSI","MACD + EMA Confluence","Stochastic + BB Mean Reversion",
