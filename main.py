@@ -145,6 +145,39 @@ def run_bot():
     clean = _clean_result(result)
     logger.info(f"📝 CYCLE RESULT:\n{json.dumps(clean, default=str, indent=2)}")
 
+    # ── NEW: PERSISTENT JSON SAVE (For Streamlit Sync) ────────────────────────
+    if clean.get("signal") in ("BUY_CALL", "BUY_PUT"):
+        try:
+            log_file = "trade_history.json"
+            history = []
+            if os.path.exists(log_file):
+                with open(log_file, 'r') as f:
+                    try:
+                        history = json.load(f)
+                    except:
+                        history = []
+            
+            # Prepare entry to match the dashboard format
+            new_entry = {
+                "time": datetime.now(IST).strftime("%d-%b %H:%M:%S"),
+                "index": INDEX_CHOICE,
+                "signal": clean.get("signal"),
+                "price": clean.get("price"),
+                "sl": clean.get("stop_loss"),
+                "target": clean.get("target"),
+                "status": "OPEN",
+                "pnl": 0.0,
+                "mode": "PAPER-AUTO" if DRY_RUN else "LIVE-AUTO"
+            }
+            
+            history.append(new_entry)
+            
+            with open(log_file, 'w') as f:
+                json.dump(history, f, indent=2)
+            logger.info("✅ Trade successfully logged to persistent JSON file.")
+        except Exception as e:
+            logger.error(f"Failed to write trade to JSON: {e}")
+
     # ── POSITION SUMMARY ─────────────────────────────────────────────────────
     positions = broker.get_positions()
     open_pos  = [p for p in positions if _safe_float(p.get("netqty", 0)) != 0]
