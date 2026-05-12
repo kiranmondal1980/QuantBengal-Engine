@@ -134,22 +134,47 @@ def get_atm_symbol(underlying: str, spot_price: float, expiry: str, opt_type: st
     strike = get_atm_strike(underlying, spot_price)
     return _nfo_symbol(underlying, expiry, strike, opt_type)
 
-def get_data(self, symbol: str = "CRUDEOIL", interval: str = "FIFTEEN_MINUTE", days: int = 5) -> list:
-    self.ensure_session()
-    token = SYMBOL_TOKENS.get(symbol.upper(), SYMBOL_TOKENS["CRUDEOIL"])
-    
-    # FIX: Route to MCX exchange if symbol is Commodity
-    target_exchange = "MCX" if symbol.upper() in ["CRUDEOIL", "NATURALGAS"] else ("BSE" if symbol.upper() == "SENSEX" else "NSE")
-    
-    now = datetime.now(IST); start = now - timedelta(days=days)
-    params = {
-        "exchange": target_exchange, 
-        "symboltoken": token, 
-        "interval": interval,
-        "fromdate": start.strftime("%Y-%m-%d 09:15"), 
-        "todate": now.strftime("%Y-%m-%d %H:%M")
-    }
+def get_data(self, symbol: str = "BANKNIFTY", interval: str = "FIFTEEN_MINUTE", days: int = 5) -> list:
+        """Fetch OHLCV candles for the given index or commodity."""
+        self.ensure_session()
+        
+        # ১. এক্সচেঞ্জ রাউটিং (NSE vs BSE vs MCX)
+        symbol_up = symbol.upper()
+        if symbol_up in ["CRUDEOIL", "NATURALGAS"]:
+            target_exchange = "MCX"
+            token = SYMBOL_TOKENS.get(symbol_up, "210001") # Default Crude token
+        elif symbol_up == "SENSEX":
+            target_exchange = "BSE"
+            token = SYMBOL_TOKENS.get(symbol_up, "99919000")
+        else:
+            target_exchange = "NSE"
+            token = SYMBOL_TOKENS.get(symbol_up, "99926000")
 
+        now = datetime.now(IST)
+        start = now - timedelta(days=days)
+        
+        params = {
+            "exchange":    target_exchange,
+            "symboltoken": token,
+            "interval":    interval,
+            "fromdate":    start.strftime("%Y-%m-%d 09:15"),
+            "todate":      now.strftime("%Y-%m-%d %H:%M"),
+        }
+        
+        try:
+            resp = self.obj.getCandleData(params)
+            
+            # ২. ডিবাগিং: যদি ডেটা না আসে তবে কারণ দেখা যাবে
+            if resp and resp.get("status"):
+                data = resp.get("data") or []
+                logger.info(f"✅ Received {len(data)} candles for {symbol_up} from {target_exchange}")
+                return data
+            else:
+                logger.error(f"❌ API Error for {symbol_up}: {resp.get('message', 'No message')}")
+                return []
+        except Exception as e:
+            logger.error(f"❌ Connection error during get_data: {e}")
+            return []
 
 # ── Broker API ────────────────────────────────────────────────────────────────
 
