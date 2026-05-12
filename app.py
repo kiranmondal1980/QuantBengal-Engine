@@ -87,9 +87,19 @@ def now_ist():
 
 def market_open():
     n = now_ist()
-    if n.weekday() > 4:
+    # যদি শনিবার বা রবিবার হয়, তবে সব মার্কেট বন্ধ
+    if n.weekday() > 4: 
         return False
-    return n.replace(hour=9, minute=15, second=0) <= n <= n.replace(hour=15, minute=30, second=0)
+    
+    # বর্তমান সিলেক্ট করা ইনডেক্স অনুযায়ী সময় নির্ধারণ
+    selected = st.session_state.get('index_choice', 'NIFTY')
+    
+    if selected in ["CRUDEOIL", "NATURALGAS"]:
+        # MCX সময়: সকাল ৯:০০ থেকে রাত ১১:৩০
+        return n.replace(hour=9, minute=0, second=0) <= n <= n.replace(hour=23, minute=30, second=0)
+    else:
+        # NSE/BSE সময়: সকাল ৯:১৫ থেকে বিকেল ৩:৩০
+        return n.replace(hour=9, minute=15, second=0) <= n <= n.replace(hour=15, minute=30, second=0)
 
 def _human_order_error(raw: str) -> str:
     """Convert Angel One error codes into plain English."""
@@ -942,9 +952,12 @@ with tab_term:
 
     if df.empty:
         if not market_open():
-            st.info("📴 Market is closed (Mon–Fri 09:15–15:30 IST). Live data loads when market opens.")
+            # ডায়নামিক মেসেজ যা ইনডেক্স অনুযায়ী সময় দেখাবে
+            idx = st.session_state.index_choice
+            time_msg = "09:00–23:30" if idx in ["CRUDEOIL", "NATURALGAS"] else "09:15–15:30"
+            st.info(f"📴 {idx} Market is currently closed. Trading hours: Mon–Fri {time_msg} IST.")
         else:
-            st.warning("⚠️ No candle data returned. Session may have expired — reconnect via the sidebar.")
+            st.warning("⚠️ Connection Active, but no data received. Re-syncing...")
     else:
         lat = df.iloc[-1]; prv = df.iloc[-2]
         price = sf(lat['close']); chg = price - sf(prv['close'])
