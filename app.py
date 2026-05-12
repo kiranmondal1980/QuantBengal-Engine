@@ -736,16 +736,25 @@ with st.sidebar:
     st.markdown('<div style="padding:4px 4px 2px;font-family:JetBrains Mono,monospace;font-size:9px;color:rgba(255,255,255,.4);letter-spacing:2px;text-transform:uppercase">Market & Strategy</div>', unsafe_allow_html=True)
     
     # 1. Define all available markets
+    with st.sidebar:
+   # 1. সব কটি ইনডেক্স এবং কমোডিটির লিস্ট
     index_list = ["NIFTY", "BANKNIFTY", "SENSEX", "CRUDEOIL", "NATURALGAS"]
-    
-    # 2. Safely find the current selection to prevent a crash
+
+    # 2. বর্তমানে যেটি সিলেক্ট করা আছে সেটি খুঁজে বের করা (যাতে ক্রাশ না করে)
     try:
         current_idx = index_list.index(st.session_state.index_choice)
     except (ValueError, KeyError):
         current_idx = 0
 
-    # 3. The Corrected Selectbox (Brackets fully closed)
+    # 3. একটি মাত্র সিলেক্ট বক্স (এখানেই সব কাজ হয়ে যাবে)
     st.session_state.index_choice = st.selectbox(
+        "Trading Index / Commodity", 
+        index_list, 
+        index=current_idx
+    )
+
+    # 4. অপশন এক্সপায়ারি ইনপুট
+    st.session_state.expiry_date = st.text_input("Options Expiry", value="18MAY26")
         "Trading Index / Commodity", 
         index_list, 
         index=current_idx
