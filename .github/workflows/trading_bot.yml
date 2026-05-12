@@ -113,3 +113,10 @@ jobs:
             *.log
             trade_ledger.csv
           retention-days: 30
+- name: Save Trade History Permanently
+        run: |
+          git config --global user.name "QuantBengal-Bot"
+          git config --global user.email "bot@quantbengal.com"
+          git add trade_history.json || true
+          git commit -m "Auto-update trade ledger [skip ci]" || true
+          git push
