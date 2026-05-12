@@ -141,7 +141,7 @@ def get_data(self, symbol: str = "BANKNIFTY", interval: str = "FIFTEEN_MINUTE", 
 
         # ১. ডায়নামিক টোকেন এবং এক্সচেঞ্জ সিলেকশন
         if symbol_up in ["CRUDEOIL", "NATURALGAS"]:
-            target_exchange = "MCX"
+            target_exchange = "MCX" if symbol.upper() == "CRUDEOIL" else "NSE"
             # MCX এর জন্য আমরা 'CRUDEOIL MAY FUT' এই ধরণের ফরম্যাটে সার্চ করব
             # বর্তমান মাসের নাম অনুযায়ী এটি অটো-চেঞ্জ হবে
             current_month = datetime.now(IST).strftime('%b').upper()
