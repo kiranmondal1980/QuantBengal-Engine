@@ -54,10 +54,10 @@ def is_market_hours() -> bool:
     if now.weekday() > 4:
         return False
     
-    # Strictly follow the 10:30 - 14:30 window for automation safety
-    start = now.replace(hour=SAFE_START_HOUR, minute=SAFE_START_MIN, second=0, microsecond=0)
-    end   = now.replace(hour=SAFE_END_HOUR,   minute=SAFE_END_MIN,   second=0, microsecond=0)
-    
+   # MCX Hours: 9:00 AM to 11:30 PM
+    # আমরা সেফ সাইডে থাকার জন্য রাত ১১:০০ টা পর্যন্ত লিমিট রাখছি
+    start = now.replace(hour=9, minute=15, second=0, microsecond=0)
+    end   = now.replace(hour=23, minute=0, second=0, microsecond=0)
     return start <= now <= end
 
 
