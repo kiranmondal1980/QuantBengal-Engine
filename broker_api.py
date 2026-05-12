@@ -33,6 +33,8 @@ SYMBOL_TOKENS = {
     "NIFTY":     "99926000",
     "BANKNIFTY": "99926009",
     "SENSEX":    "99919000",
+    "CRUDEOIL": "210001", # MCX Crude Oil Spot/Futures
+    "NATURALGAS": "210002", # MCX Natural Gas
 }
 
 # ATM rounding precision per underlying
