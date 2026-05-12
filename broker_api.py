@@ -42,6 +42,8 @@ ATM_ROUND = {
     "NIFTY":     50,
     "BANKNIFTY": 100,
     "SENSEX":    100,
+    "CRUDEOIL":   50,        # Crude moves in 50-100 intervals for options
+    "NATURALGAS": 5          # Natural Gas moves in 5 point intervals
 }
 
 ORDER_VARIETY   = "NORMAL"
@@ -131,6 +133,22 @@ def _nfo_symbol(underlying: str, expiry_code: str, strike: int, opt_type: str) -
 def get_atm_symbol(underlying: str, spot_price: float, expiry: str, opt_type: str) -> str:
     strike = get_atm_strike(underlying, spot_price)
     return _nfo_symbol(underlying, expiry, strike, opt_type)
+
+def get_data(self, symbol: str = "CRUDEOIL", interval: str = "FIFTEEN_MINUTE", days: int = 5) -> list:
+    self.ensure_session()
+    token = SYMBOL_TOKENS.get(symbol.upper(), SYMBOL_TOKENS["CRUDEOIL"])
+    
+    # FIX: Route to MCX exchange if symbol is Commodity
+    target_exchange = "MCX" if symbol.upper() in ["CRUDEOIL", "NATURALGAS"] else ("BSE" if symbol.upper() == "SENSEX" else "NSE")
+    
+    now = datetime.now(IST); start = now - timedelta(days=days)
+    params = {
+        "exchange": target_exchange, 
+        "symboltoken": token, 
+        "interval": interval,
+        "fromdate": start.strftime("%Y-%m-%d 09:15"), 
+        "todate": now.strftime("%Y-%m-%d %H:%M")
+    }
 
 
 # ── Broker API ────────────────────────────────────────────────────────────────
@@ -526,3 +544,7 @@ class IndianBrokerAPI:
         except Exception as e:
             logger.warning(f"get_funds error: {_human_error(str(e))}")
         return {}
+
+def place_order(self, signal, symbol="CRUDEOIL", quantity=1, spot_price=0.0, expiry=""):
+    # FIX: MCX options exchange is 'MCX'
+    target_exchange = "MCX" if symbol.upper() in ["CRUDEOIL", "NATURALGAS"] else "NFO"
