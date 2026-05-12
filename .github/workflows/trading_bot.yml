@@ -49,6 +49,7 @@ on:
         required: true
         default: '30APR'
 
+# CRITICAL: Grant permission to save the trade log file back to your repo
 permissions:
   contents: write
 
@@ -61,6 +62,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Get all history to prevent push errors
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v5
@@ -80,7 +83,7 @@ jobs:
 
       - name: Run QuantBengal Engine
         env:
-          # ── Secrets (Security)
+          # ── Secrets
           BROKER_API_KEY:   ${{ secrets.BROKER_API_KEY }}
           CLIENT_ID:        ${{ secrets.CLIENT_ID }}
           PASSWORD:         ${{ secrets.PASSWORD }}
@@ -91,15 +94,23 @@ jobs:
           STRATEGY_NAME:    ${{ github.event.inputs.strategy_name || vars.STRATEGY_NAME || 'SuperTrend + RSI' }}
           INDEX_CHOICE:     ${{ github.event.inputs.index_choice  || vars.INDEX_CHOICE  || 'BANKNIFTY' }}
           EXPIRY_DATE:      ${{ github.event.inputs.expiry_date   || vars.EXPIRY_DATE   || '30APR' }}
-          DRY_RUN:          ${{ github.event.inputs.dry_run       || 'true' }}
+          DRY_RUN:          ${{ github.event.inputs.dry_run       || vars.DRY_RUN       || 'true' }}
 
           # ── Risk & Capital Config
           CAPITAL:          ${{ vars.CAPITAL        || '20000' }}
           VIX:              ${{ vars.VIX            || '15.0' }}
           IC_EXPIRY:        ${{ vars.IC_EXPIRY      || '30APR' }}
           BANKNIFTY_SPOT:   ${{ vars.BANKNIFTY_SPOT || '0' }}
-
         run: python main.py
+
+      - name: Save Trade History Permanently
+        run: |
+          git config --global user.name "QuantBengal-Bot"
+          git config --global user.email "bot@quantbengal.com"
+          git pull origin main --rebase # Get any updates from dashboard
+          git add trade_history.json || true
+          git commit -m "Auto-update trade ledger [skip ci]" || true
+          git push
 
       - name: Create dummy log if missing
         run: touch engine.log
@@ -111,12 +122,5 @@ jobs:
           name: engine-log-${{ github.run_number }}
           path: |
             *.log
-            trade_ledger.csv
+            trade_history.json
           retention-days: 30
-- name: Save Trade History Permanently
-        run: |
-          git config --global user.name "QuantBengal-Bot"
-          git config --global user.email "bot@quantbengal.com"
-          git add trade_history.json || true
-          git commit -m "Auto-update trade ledger [skip ci]" || true
-          git push
