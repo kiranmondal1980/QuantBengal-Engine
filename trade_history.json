@@ -1,0 +1,13 @@
+[
+  {
+    "time": "14-May 11:58:20",
+    "index": "BANKNIFTY",
+    "signal": "BUY_CALL",
+    "price": 54178.65,
+    "sl": 53904.5,
+    "target": 54672.0,
+    "status": "OPEN",
+    "pnl": 0.0,
+    "mode": "PAPER-AUTO"
+  }
+]
